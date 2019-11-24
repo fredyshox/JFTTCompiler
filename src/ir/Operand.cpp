@@ -1,0 +1,121 @@
+//
+// Created by Kacper Raczy on 2019-09-25.
+//
+
+#include "Operand.hpp"
+
+NotInMemory::NotInMemory(std::string name): opName(name) {}
+
+const char* NotInMemory::what() const throw() {
+    std::stringstream ss;
+    ss << "Operand is not in memory: " << opName;
+    return ss.str().c_str();
+}
+
+std::unique_ptr<Operand> Operand::copy() const {
+    return std::unique_ptr<Operand>(copyImpl());
+}
+
+bool Operand::hasStaticMemoryPosition() {
+    return false;
+}
+
+MemoryPosition Operand::memoryPosition(SymbolTable &table) {
+    throw NotInMemory("no name");
+}
+
+bool PermanentOperand::isPermanent() {
+    return true;
+}
+
+ConstantOperand::ConstantOperand(const int value): PermanentOperand(), value(value) {}
+
+ConstantOperand* ConstantOperand::copyImpl() const {
+    return new ConstantOperand(this->value);
+}
+
+bool ConstantOperand::hasStaticMemoryPosition() {
+    return true;
+}
+
+MemoryPosition ConstantOperand::memoryPosition(SymbolTable &table) {
+    std::string name = recordName();
+    if (table.contains(name)) {
+        return table.search(name).memoryPosition();
+    } else {
+        throw NotInMemory(name);
+    }
+}
+
+std::string ConstantOperand::recordName() {
+    return "__c" + std::to_string(value);
+}
+
+SymbolOperand::SymbolOperand(std::string symbol): PermanentOperand(), symbol(symbol) {}
+
+SymbolOperand* SymbolOperand::copyImpl() const {
+    return new SymbolOperand(std::string(this->symbol));
+}
+
+bool SymbolOperand::hasStaticMemoryPosition() {
+    return true;
+}
+
+MemoryPosition SymbolOperand::memoryPosition(SymbolTable &table) {
+    if (table.contains(symbol)) {
+        return table.search(symbol).memoryPosition();
+    } else {
+        throw NotInMemory(symbol);
+    }
+}
+
+std::string SymbolOperand::recordName() {
+    return symbol;
+}
+
+ArraySymbolOperand::ArraySymbolOperand(std::unique_ptr<Operand> indexPtr, std::string symbol): SymbolOperand(symbol), index(std::move(indexPtr)) {}
+
+ArraySymbolOperand* ArraySymbolOperand::copyImpl() const {
+    return new ArraySymbolOperand(index->copy(), this->symbol);
+}
+
+bool ArraySymbolOperand::hasStaticMemoryPosition() {
+    return dynamic_cast<ConstantOperand*>(this->index.get()) != nullptr;
+}
+
+MemoryPosition ArraySymbolOperand::memoryPosition(SymbolTable &table) {
+    if (!hasStaticMemoryPosition()) {
+        throw NotInMemory(symbol);
+    }
+
+    ConstantOperand cop = *dynamic_cast<ConstantOperand*>(this->index.get());
+    if (table.contains(symbol)) {
+        MemoryPosition base = table.search(symbol).memoryPosition();
+        return base + cop.value;
+    } else {
+        throw NotInMemory(symbol);
+    }
+}
+
+VirtualRegisterOperand::VirtualRegisterOperand(uint64_t index): Operand() {
+    this->index = index;
+}
+
+VirtualRegisterOperand* VirtualRegisterOperand::copyImpl() const {
+    return new VirtualRegisterOperand(this->index);
+}
+
+bool VirtualRegisterOperand::isPermanent() {
+    return false;
+}
+
+bool VirtualRegisterOperand::hasStaticMemoryPosition() {
+    return true;
+}
+
+MemoryPosition VirtualRegisterOperand::memoryPosition(SymbolTable &table) {
+    return index;
+}
+std::string VirtualRegisterOperand::recordName() {
+    return "__v" + std::to_string(index);
+}
