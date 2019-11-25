@@ -6,7 +6,6 @@
 #ifndef ir_controlflowblock_hpp
 #define ir_controlflowblock_hpp
 
-#include <string>
 #include <list>
 #include "BaseBlock.hpp"
 #include "SymbolTable.hpp"
@@ -20,13 +19,9 @@ class ControlFlowBlock: public BaseBlock {
 protected:
     NestedSymbolTable _localSymbolTable;
 public:
-    explicit ControlFlowBlock(NestedSymbolTable symbolTable): BaseBlock() {
-        this->_localSymbolTable = symbolTable;
-    }
+    explicit ControlFlowBlock(NestedSymbolTable symbolTable);
     virtual ~ControlFlowBlock() = default;
-    NestedSymbolTable& localSymbolTable() {
-        return _localSymbolTable;
-    }
+    NestedSymbolTable& localSymbolTable();
 };
 
 /**
@@ -42,19 +37,8 @@ private:
     LabelIdentifier _postBodyLabel;
     BaseBlock* _body = nullptr;
 protected:
-    void setLoopLabel(LabelIdentifier newLabel) {
-        _loopLabel = newLabel;
-    }
-
-    void adjustBodyLabels() {
-        if (_body == nullptr) return;
-
-        BaseBlock* current = _body;
-        while (current->next() != nullptr) {
-            current = current->next();
-        }
-        current->setEndLabel(postBodyLabel());
-    }
+    void setLoopLabel(LabelIdentifier newLabel);
+    void adjustBodyLabels();
 public:
     /**
     * Returns block of three address codes, that must be placed before loop body.
@@ -73,72 +57,13 @@ public:
      */
     virtual ThreeAddressCodeBlock post() = 0;
 
-    LoopBlock(): ControlFlowBlock(NestedSymbolTable()) {
-        this->_loopLabel = genLabel();
-        this->_bodyLabel = genLabel();
-        this->_postBodyLabel = genLabel();
-    }
-
-    BaseBlock* body() {
-        return _body;
-    }
-
-    void setBody(BaseBlock* blocks) {
-        if (blocks != nullptr)
-            blocks->setId(bodyLabel());
-        this->_body = blocks;
-    }
-
-    LabelIdentifier loopLabel() {
-        return _loopLabel;
-    }
-
-    LabelIdentifier bodyLabel() {
-        return _bodyLabel;
-    }
-
-    LabelIdentifier postBodyLabel() {
-        return _postBodyLabel;
-    }
-
-    std::list<ThreeAddressCodeBlock> flatten() override {
-        if (body() == nullptr) {
-            return {};
-        }
-
-        // label adjustment
-        adjustBodyLabels();
-
-        std::list<ThreeAddressCodeBlock> total;
-        ThreeAddressCodeBlock binit = init();
-        ThreeAddressCodeBlock bpre = pre();
-        ThreeAddressCodeBlock bpost = post();
-        if (binit.size() > 0) {
-            binit.setEndLabel(loopLabel());
-            total.push_back(binit);
-        }
-        if (bpre.size() > 0) {
-            bpre.setId(loopLabel());
-            bpre.setEndLabel(bodyLabel());
-            total.push_back(bpre);
-        }
-
-        std::list<ThreeAddressCodeBlock> flatBody = BaseBlock::flattenBlockList(body());
-        total.insert(total.end(), flatBody.begin(), flatBody.end());
-
-
-        if (bpost.size() > 0) {
-            bpost.setId(postBodyLabel());
-            bpost.setEndLabel(endLabel());
-            total.push_back(bpost);
-        }
-
-        // total always > 0
-        // first flat block id = id()
-        (*total.begin()).setId(id());
-
-        return total;
-    }
+    LoopBlock();
+    BaseBlock* body();
+    void setBody(BaseBlock* blocks);
+    LabelIdentifier loopLabel();
+    LabelIdentifier bodyLabel();
+    LabelIdentifier postBodyLabel();
+    std::list<ThreeAddressCodeBlock> flatten() override;
 };
 
 #endif /* ir_controlflowblock_hpp */

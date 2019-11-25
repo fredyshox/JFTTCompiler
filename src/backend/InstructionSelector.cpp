@@ -19,8 +19,6 @@ using Operator = ThreeAddressCode::Operator;
 #define MM_TEMP5 5
 
 std::list<ThreeAddressCodeBlock> isaselector::expand(BaseBlock &program, GlobalSymbolTable& symbolTable) {
-    std::unordered_map<int64_t, int64_t> jumpTable;
-
     // flatten the program into tac blocks
     std::list<ThreeAddressCodeBlock> flatTacs = BaseBlock::flattenBlockList(&program);
     // create memory map
@@ -296,8 +294,6 @@ AssemblyBlock isaselector::initialization(GlobalSymbolTable& symbolTable) {
             asmBlock.push_back(Assembly::Store(record.memoryPosition()));
         }
     }
-
-    //TODO temporary vars for multiplication
 
     return asmBlock;
 }
