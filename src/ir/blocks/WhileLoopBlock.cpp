@@ -26,6 +26,10 @@ Condition& WhileLoopBlock::condition() {
     return _condition;
 }
 
+void WhileLoopBlock::onIdChange(LabelIdentifier newId) {
+    setLoopLabel(newId);
+}
+
 DoWhileLoopBlock::DoWhileLoopBlock(Condition condition): WhileLoopBlock(condition) {}
 
 ThreeAddressCodeBlock DoWhileLoopBlock::init() {
@@ -33,3 +37,5 @@ ThreeAddressCodeBlock DoWhileLoopBlock::init() {
          ThreeAddressCodeBlock::jump(bodyLabel(), JUMP_ALWAYS)
     });
 }
+
+void DoWhileLoopBlock::onIdChange(LabelIdentifier newId) {}

@@ -7,6 +7,9 @@
 
 #include <cstdint>
 
+#define LABEL_START 0
+#define LABEL_END 1
+
 typedef uint64_t LabelIdentifier;
 
 LabelIdentifier genLabel();

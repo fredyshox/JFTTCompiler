@@ -84,7 +84,6 @@ ThreeAddressCodeBlock ForLoopBlock::post() {
         iteratorUpdate = ThreeAddressCodeBlock::subtraction(iterator, iterator, step);
     }
     ThreeAddressCodeBlock counterUpdate = ThreeAddressCodeBlock::subtraction(counter, counter, step);
-    ThreeAddressCodeBlock counterUpdate = ThreeAddressCodeBlock::subtraction(counter, counter, step);
     ThreeAddressCode loopJump = ThreeAddressCodeBlock::jump(loopLabel(), JUMP_ALWAYS);
 
     ThreeAddressCodeBlock block;

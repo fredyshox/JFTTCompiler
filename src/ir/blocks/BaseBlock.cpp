@@ -6,7 +6,8 @@
 #include "ThreeAddressCodeBlock.hpp"
 
 BaseBlock::BaseBlock() {
-    _id = genLabel();
+    _id = LABEL_START;
+    _endLabel = LABEL_END;
     _next = nullptr;
 }
 
@@ -16,15 +17,33 @@ BaseBlock* BaseBlock::next() {
 
 void BaseBlock::setNext(BaseBlock *next) {
     _next = next;
+    if (next != nullptr) {
+        setEndLabel(genLabel());
+        next->setId(_endLabel);
+    }
 }
 
-uint64_t BaseBlock::id() {
+LabelIdentifier BaseBlock::id() {
     return _id;
 }
 
-void BaseBlock::setId(uint64_t id) {
+void BaseBlock::setId(LabelIdentifier id) {
     _id = id;
+    onIdChange(id);
 }
+
+LabelIdentifier BaseBlock::endLabel() {
+    return _endLabel;
+}
+
+void BaseBlock::setEndLabel(LabelIdentifier endLabel) {
+    _endLabel = endLabel;
+    onEndLabelChange(endLabel);
+}
+
+void BaseBlock::onIdChange(LabelIdentifier newId) {}
+
+void BaseBlock::onEndLabelChange(LabelIdentifier newLabel) {}
 
 std::list<ThreeAddressCodeBlock> BaseBlock::flattenBlockList(BaseBlock *block) {
     BaseBlock* current = block;

@@ -28,12 +28,14 @@ public:
     ThreeAddressCodeBlock pre() override;
     ThreeAddressCodeBlock post() override;
     Condition& condition();
+    void onIdChange(LabelIdentifier newId) override;
 };
 
 class DoWhileLoopBlock: public WhileLoopBlock {
 public:
     DoWhileLoopBlock(Condition condition);
     ThreeAddressCodeBlock init() override;
+    void onIdChange(LabelIdentifier newId) override;
 };
 
 #endif /* ir_whileloopblock_hpp */

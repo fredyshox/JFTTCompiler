@@ -16,7 +16,8 @@ class ThreeAddressCodeBlock;
  */
 class BaseBlock {
 private:
-    uint64_t _id;
+    LabelIdentifier _id;
+    LabelIdentifier _endLabel;
     BaseBlock* _next;
     BaseBlock();
 
@@ -25,8 +26,12 @@ private:
 public:
     BaseBlock* next();
     void setNext(BaseBlock* next);
-    uint64_t id();
-    void setId(uint64_t id);
+    virtual LabelIdentifier id();
+    void setId(LabelIdentifier id);
+    LabelIdentifier endLabel();
+    void setEndLabel(LabelIdentifier endLabel);
+    virtual void onIdChange(LabelIdentifier newId);
+    virtual void onEndLabelChange(LabelIdentifier newLabel);
     virtual std::list<ThreeAddressCodeBlock> flatten() = 0;
     static std::list<ThreeAddressCodeBlock> flattenBlockList(BaseBlock* block);
     virtual ~BaseBlock() = default;

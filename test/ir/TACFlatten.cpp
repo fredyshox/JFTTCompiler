@@ -43,8 +43,8 @@ TEST(TACFlatten, ConditionBlockPassFail) {
     ConditionBlock branch(cond, &add1, &add2);
 
     list<ThreeAddressCodeBlock> flat = branch.flatten();
-    ASSERT_EQ(flat.size(), 5);
-    vector<uint64_t> sizes = {(4 + 2), 4, 4, 4, 4};
+    ASSERT_EQ(flat.size(), 6);
+    vector<uint64_t> sizes = {(4 + 2), 4, 4, 1, 4, 4};
     auto it = flat.begin();
     for (int i = 0; i < 5; i++) {
         EXPECT_EQ((*it).size(), sizes[i]);
@@ -139,6 +139,144 @@ TEST(TACFlatten, NestedBlocks) {
     for (int i = 0; i < expectedSize; i++) {
         EXPECT_EQ((*it).size(), sizes[i]);
         ++it;
+    }
+}
+
+TEST(TACFlatten, StartEndLabels) {
+    // for
+    //   while
+    //     add1
+    //     sub1
+    //   if
+    //     add2
+    //     sub2
+    //   else
+    //     add3
+    //     sub3
+    //   if
+    //     add5
+    //     sub5
+    //   dowhile
+    //     add6
+    //     sub6
+    //   add7
+    //   sub7
+
+    LoopRange lr = LoopRange(c10, a, 1);
+    ForLoopBlock forLoop("i", lr);
+
+    WhileLoopBlock whileLoop(cond);
+    SAMPLE_BODY(add1, sub1);
+    whileLoop.setBody(&add1);
+
+    SAMPLE_BODY(add2, sub2);
+    SAMPLE_BODY(add3, sub3);
+    ConditionBlock branch1(cond, &add2, &add3);
+    whileLoop.setNext(&branch1);
+
+    SAMPLE_BODY(add5, sub5);
+    ConditionBlock branch2(cond, &add5);
+    branch1.setNext(&branch2);
+
+    SAMPLE_BODY(add6, sub6);
+    DoWhileLoopBlock dwhile(cond);
+    dwhile.setBody(&add6);
+    branch2.setNext(&dwhile);
+
+    SAMPLE_BODY(add7, sub7);
+    dwhile.setNext(&add7);
+
+    forLoop.setBody(&whileLoop);
+
+    list<ThreeAddressCodeBlock> flat = forLoop.flatten();
+    std::cout << "Flat tac code size: " << flat.size() << std::endl;
+
+    if (flat.size() != 0) {
+        std::cout << "Start label test." << std::endl;
+        EXPECT_EQ(flat.begin()->id(), LABEL_START);
+    }
+
+    int counter = 0;
+    for (auto it = flat.begin(); it != flat.end(); ++it) {
+        std::cout << "Testing ids at: " << counter << " -> " << counter + 1 << std::endl;
+        auto itNext = std::next(it);
+        if (itNext == flat.end()) {
+            EXPECT_EQ(it->endLabel() ,LABEL_END);
+        } else {
+            EXPECT_EQ(it->endLabel(), itNext->id());
+        }
+        ++counter;
+    }
+}
+
+TEST(TACFlatten, StartEndLabels2) {
+    // for
+    //   while
+    //     add1
+    //     sub1
+    //   if
+    //     add2
+    //     sub2
+    //   else
+    //     add3
+    //     sub3
+    //   if
+    //     add5
+    //     sub5
+    //   dowhile
+    //     add6
+    //     sub6
+    //   add7
+    //   sub7
+
+    LoopRange lr = LoopRange(c10, a, 1);
+    ForLoopBlock forLoop("i", lr);
+
+    WhileLoopBlock whileLoop(cond);
+    SAMPLE_BODY(add1, sub1);
+    whileLoop.setBody(&add1);
+
+    SAMPLE_BODY(add2, sub2);
+    SAMPLE_BODY(add3, sub3);
+    ConditionBlock branch1(cond, nullptr, nullptr);
+    branch1.setPassBody(&add2);
+    branch1.setFailBody(&add3);
+
+    whileLoop.setNext(&branch1);
+
+    SAMPLE_BODY(add5, sub5);
+    ConditionBlock branch2(cond, nullptr, nullptr);
+    branch2.setPassBody(&add5);
+    branch1.setNext(&branch2);
+
+    SAMPLE_BODY(add6, sub6);
+    DoWhileLoopBlock dwhile(cond);
+    dwhile.setBody(&add6);
+    branch2.setNext(&dwhile);
+
+    SAMPLE_BODY(add7, sub7);
+    dwhile.setNext(&add7);
+
+    forLoop.setBody(&whileLoop);
+
+    list<ThreeAddressCodeBlock> flat = forLoop.flatten();
+    std::cout << "Flat tac code size: " << flat.size() << std::endl;
+
+    if (flat.size() != 0) {
+        std::cout << "Start label test." << std::endl;
+        EXPECT_EQ(flat.begin()->id(), LABEL_START);
+    }
+
+    int counter = 0;
+    for (auto it = flat.begin(); it != flat.end(); ++it) {
+        std::cout << "Testing ids at: " << counter << " -> " << counter + 1 << std::endl;
+        auto itNext = std::next(it);
+        if (itNext == flat.end()) {
+            EXPECT_EQ(it->endLabel() ,LABEL_END);
+        } else {
+            EXPECT_EQ(it->endLabel(), itNext->id());
+        }
+        ++counter;
     }
 }
 

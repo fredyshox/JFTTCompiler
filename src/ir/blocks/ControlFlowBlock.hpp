@@ -19,13 +19,11 @@
 class ControlFlowBlock: public BaseBlock {
 protected:
     NestedSymbolTable _localSymbolTable;
-    LabelIdentifier _endLabel;
 public:
     explicit ControlFlowBlock(NestedSymbolTable symbolTable): BaseBlock() {
         this->_localSymbolTable = symbolTable;
     }
     virtual ~ControlFlowBlock() = default;
-    virtual LabelIdentifier endLabel() = 0;
     NestedSymbolTable& localSymbolTable() {
         return _localSymbolTable;
     }
@@ -41,7 +39,22 @@ class LoopBlock: public ControlFlowBlock {
 private:
     LabelIdentifier _loopLabel;
     LabelIdentifier _bodyLabel;
+    LabelIdentifier _postBodyLabel;
     BaseBlock* _body = nullptr;
+protected:
+    void setLoopLabel(LabelIdentifier newLabel) {
+        _loopLabel = newLabel;
+    }
+
+    void adjustBodyLabels() {
+        if (_body == nullptr) return;
+
+        BaseBlock* current = _body;
+        while (current->next() != nullptr) {
+            current = current->next();
+        }
+        current->setEndLabel(postBodyLabel());
+    }
 public:
     /**
     * Returns block of three address codes, that must be placed before loop body.
@@ -62,8 +75,8 @@ public:
 
     LoopBlock(): ControlFlowBlock(NestedSymbolTable()) {
         this->_loopLabel = genLabel();
-        this->_endLabel = genLabel();
         this->_bodyLabel = genLabel();
+        this->_postBodyLabel = genLabel();
     }
 
     BaseBlock* body() {
@@ -80,12 +93,12 @@ public:
         return _loopLabel;
     }
 
-    LabelIdentifier endLabel() override {
-        return _endLabel;
-    }
-
     LabelIdentifier bodyLabel() {
         return _bodyLabel;
+    }
+
+    LabelIdentifier postBodyLabel() {
+        return _postBodyLabel;
     }
 
     std::list<ThreeAddressCodeBlock> flatten() override {
@@ -93,23 +106,36 @@ public:
             return {};
         }
 
+        // label adjustment
+        adjustBodyLabels();
+
         std::list<ThreeAddressCodeBlock> total;
         ThreeAddressCodeBlock binit = init();
         ThreeAddressCodeBlock bpre = pre();
         ThreeAddressCodeBlock bpost = post();
         if (binit.size() > 0) {
+            binit.setEndLabel(loopLabel());
             total.push_back(binit);
         }
         if (bpre.size() > 0) {
+            bpre.setId(loopLabel());
+            bpre.setEndLabel(bodyLabel());
             total.push_back(bpre);
         }
 
         std::list<ThreeAddressCodeBlock> flatBody = BaseBlock::flattenBlockList(body());
         total.insert(total.end(), flatBody.begin(), flatBody.end());
 
+
         if (bpost.size() > 0) {
+            bpost.setId(postBodyLabel());
+            bpost.setEndLabel(endLabel());
             total.push_back(bpost);
         }
+
+        // total always > 0
+        // first flat block id = id()
+        (*total.begin()).setId(id());
 
         return total;
     }

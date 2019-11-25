@@ -22,7 +22,11 @@ private:
     BaseBlock* _pass;
     BaseBlock* _fail;
     LabelIdentifier _passLabel;
+    LabelIdentifier _postPassLabel;
     LabelIdentifier _failLabel;
+protected:
+    void adjustPassBodyLabels();
+    void adjustFailBodyLabels();
 public:
     ConditionBlock(Condition condition, BaseBlock* pass, BaseBlock* fail = nullptr);
     BaseBlock* passBody();
@@ -31,9 +35,11 @@ public:
     void setFailBody(BaseBlock* block);
     Condition& condition();
     ThreeAddressCodeBlock condBody();
+    ThreeAddressCodeBlock postPassBody();
     LabelIdentifier passLabel();
+    LabelIdentifier postPassLabel();
     LabelIdentifier failLabel();
-    LabelIdentifier endLabel() override;
+    void onEndLabelChange(LabelIdentifier newLabel) override;
     std::list<ThreeAddressCodeBlock> flatten() override;
 };
 
