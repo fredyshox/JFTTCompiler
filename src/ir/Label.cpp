@@ -5,6 +5,6 @@
 #include "Label.hpp"
 
 LabelIdentifier genLabel() {
-    static LabelIdentifier currentId = 0;
+    static LabelIdentifier currentId = 1;
     return currentId++;
 }

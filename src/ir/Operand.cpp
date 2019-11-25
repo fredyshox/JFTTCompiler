@@ -3,6 +3,7 @@
 //
 
 #include "Operand.hpp"
+#include "Record.hpp"
 
 NotInMemory::NotInMemory(std::string name): opName(name) {}
 
@@ -48,7 +49,7 @@ MemoryPosition ConstantOperand::memoryPosition(SymbolTable &table) {
 }
 
 std::string ConstantOperand::recordName() {
-    return "__c" + std::to_string(value);
+    return Record::constantName(value);
 }
 
 SymbolOperand::SymbolOperand(std::string symbol): PermanentOperand(), symbol(symbol) {}

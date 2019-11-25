@@ -6,6 +6,10 @@
 
 ThreeAddressCodeBlock::ThreeAddressCodeBlock(const std::list<ThreeAddressCode> &codes): BaseBlock(), _codes(codes) {}
 
+uint64_t ThreeAddressCodeBlock::size() {
+    return this->_codes.size();
+}
+
 std::list<ThreeAddressCode>& ThreeAddressCodeBlock::codes() {
     return this->_codes;
 }
@@ -16,6 +20,14 @@ void ThreeAddressCodeBlock::merge(ThreeAddressCodeBlock &block) {
 
 void ThreeAddressCodeBlock::append(ThreeAddressCode& code) {
     _codes.push_back(code);
+}
+
+std::list<ThreeAddressCodeBlock> ThreeAddressCodeBlock::flatten() {
+    if (this->size() == 0) {
+        return {};
+
+    }
+    return {*this};
 }
 
 ThreeAddressCodeBlock ThreeAddressCodeBlock::binaryOperation(Operand &dest,

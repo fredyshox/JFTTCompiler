@@ -30,6 +30,8 @@ struct Record {
     MemoryPosition offset;
     int occurrences = 0;
     bool isIterator = false;
+    bool isConstant = false;
+    bool isMemoryLocation = false;
 
     Record(std::string name, Type type, int size, std::optional<ArrayBounds> bounds, MemoryPosition offset = OFFSET_UNINITIALIZED) {
         this->name = name;
@@ -54,7 +56,21 @@ struct Record {
         return r;
     }
 
-    MemoryPosition memoryPosition() {
+    static Record constant(int64_t value) {
+        Record r = Record::integer(constantName(value));
+        r.isConstant = true;
+        return r;
+    }
+
+    static std::string constantName(int64_t value) {
+        return "__c" + std::to_string(value);
+    }
+
+    static std::string memoryLocationName(std::string& recordName) {
+        return "__m" + recordName;
+    }
+
+    MemoryPosition memoryPosition() const {
         if (!this->bounds.has_value()) {
             return offset;
         } else {

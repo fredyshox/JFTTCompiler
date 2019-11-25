@@ -11,7 +11,6 @@
 
 #include <string>
 #include <exception>
-#include "Label.hpp"
 #include "SymbolTable.hpp"
 
 struct NotInMemory: public std::exception {

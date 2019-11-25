@@ -11,16 +11,26 @@
 #include "blocks/ForLoopBlock.hpp"
 #include "SymbolTable.hpp"
 #include "Assembly.hpp"
+#include <list>
 #include <vector>
+#include <exception>
 
 using AssemblyBlock = std::vector<Assembly>;
+// label identifier -> code location
+using JumpTable = std::unordered_map<LabelIdentifier, uint64_t>;
 
 namespace isaselector {
+    struct ISAMatchFailed: public std::exception {
+        const std::string reason;
+        explicit ISAMatchFailed(std::string reason);
+        const char* what() const throw() override;
+    };
+
     /**
      * Expands control flow blocks into basic three address code blocks.
      * @param program program to expand
      */
-    ThreeAddressCodeBlock* expand(BaseBlock& program);
+    std::list<ThreeAddressCodeBlock> expand(BaseBlock& program, GlobalSymbolTable& symbolTable);
 
     /**
      * Simplifies three address code block.
@@ -32,14 +42,27 @@ namespace isaselector {
      * Matches three address code to target isa instructions.
      * @param block block to match instructions to
      */
-    void match(ThreeAddressCodeBlock& block);
+    void match(AssemblyBlock& asmBlock, JumpTable& jtable, ThreeAddressCodeBlock& block, SymbolTable& table) noexcept(false);
 
-    // Utility
-    AssemblyBlock matchStdin(Operand* operand, SymbolTable& table);
-    AssemblyBlock matchStdout(Operand* operand, SymbolTable& table);
-    AssemblyBlock loadToP0(Operand* operand, SymbolTable& table) noexcept(false);
-    AssemblyBlock loadToP0(int64_t value);
-    AssemblyBlock storeP0(Operand* operand, SymbolTable& table) noexcept(false);
+    /**
+     * Adds memory map initialization block
+     * @param allRecords
+     */
+    AssemblyBlock initialization(GlobalSymbolTable& symbolTable);
+
+    /**
+     * Converts abstract jump locations into real one
+     * @param block block to be fixed
+     * @param jtable jump table
+     */
+    void applyJumpTable(AssemblyBlock& asmBlock, JumpTable& jtable) noexcept(false);
+
+    /**
+     * Fills block with instructions of loading constant value into memory location 0
+     * @param block block to be filled
+     * @param value constant signed value
+     */
+    void loadValueToP0(AssemblyBlock& asmBlock, int64_t value);
 }
 
 #endif /* backend_instruciton_selector_hpp */

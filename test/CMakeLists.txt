@@ -71,3 +71,4 @@ add_unit_test(tac_simplify)
 add_test_exec(isa_match
         backend/ISAMatch.cpp
         backend)
+add_unit_test(isa_match)

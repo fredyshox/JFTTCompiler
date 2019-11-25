@@ -20,8 +20,6 @@ BaseBlock* irconverter::convertList(ASTNode* node, SymbolTable *parentTable) {
 
     while (current != nullptr) {
         block = convert(*current, parentTable);
-        // TODO merge three address code blocks toghether
-
         prevBlock->setNext(block);
         prevBlock = block;
         current = current->next;

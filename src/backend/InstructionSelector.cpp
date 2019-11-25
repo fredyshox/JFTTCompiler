@@ -15,9 +15,33 @@ using Operator = ThreeAddressCode::Operator;
 #define MM_TEMP1 1
 #define MM_TEMP2 2
 #define MM_TEMP3 3
+#define MM_TEMP4 4
+#define MM_TEMP5 5
 
-ThreeAddressCodeBlock* isaselector::expand(BaseBlock &program) {
+std::list<ThreeAddressCodeBlock> isaselector::expand(BaseBlock &program, GlobalSymbolTable& symbolTable) {
+    std::unordered_map<int64_t, int64_t> jumpTable;
+
     // flatten the program into tac blocks
+    std::list<ThreeAddressCodeBlock> flatTacs = BaseBlock::flattenBlockList(&program);
+    // create memory map
+    std::unordered_map<std::string, Record>& recordMap = symbolTable.allRecords();
+    std::vector<std::string> keys;
+    auto keySelector = [](auto pair) { return pair.first; };
+    std::transform(recordMap.begin(), recordMap.end(), keys.begin(), keySelector);
+    MemoryPosition currentPos = MM_TEMP5 + 1;
+    for (const std::string& key : keys) {
+        Record& record = recordMap.at(key);
+        record.offset = currentPos;
+        currentPos += record.size;
+        if (record.type == Record::ARRAY) {
+            std::string memLocName = Record::memoryLocationName(record.name);
+            Record m = Record::integer(memLocName);
+            m.offset = currentPos++;
+            symbolTable.insert(memLocName, m);
+        }
+    }
+
+    return flatTacs;
 }
 
 void isaselector::simplify(ThreeAddressCodeBlock &block, SymbolTable& table) {
@@ -30,13 +54,14 @@ void isaselector::simplify(ThreeAddressCodeBlock &block, SymbolTable& table) {
         ThreeAddressCode& code = (*it);
         if (code.op == Operator::LOAD) {
             if (auto* vreg = dynamic_cast<VirtualRegisterOperand*>(code.destination.get())) {
+                // vreg dest
                 if (code.firstOperand->hasStaticMemoryPosition()) {
                     // vreg <- a/1/b[1]/v
                     MemoryPosition pos = code.firstOperand->memoryPosition(table);
                     vrMemoryPos[vreg->index] = pos;
                 } else {
                     // vreg <- a[b]
-                    // unroll
+                    // unroll array operations
                     auto* aso = dynamic_cast<ArraySymbolOperand*>(code.firstOperand.get());
                     std::string memoryPosRecordName = "__m" + code.firstOperand->recordName();
                     Record memoryPosRecord = table.search(memoryPosRecordName);
@@ -60,6 +85,7 @@ void isaselector::simplify(ThreeAddressCodeBlock &block, SymbolTable& table) {
                 it = codes.erase(it);
                 continue;
             } else {
+                // a/b[1]/b[a] dest
                 auto* vro = static_cast<VirtualRegisterOperand*>(code.firstOperand.get());
                 auto v0 = VirtualRegisterOperand(MM_ACC);
 
@@ -78,6 +104,7 @@ void isaselector::simplify(ThreeAddressCodeBlock &block, SymbolTable& table) {
                     }
                 } else {
                     // a[b] <- vreg
+                    // unroll array operations
                     auto* aso = dynamic_cast<ArraySymbolOperand*>(code.destination.get());
                     std::string memoryPosRecordName = "__m" + code.destination->recordName();
                     Record memoryPosRecord = table.search(memoryPosRecordName);
@@ -142,153 +169,182 @@ void isaselector::simplify(ThreeAddressCodeBlock &block, SymbolTable& table) {
     // optimize tac block
 }
 
-void isaselector::match(ThreeAddressCodeBlock &block) {
-    SymbolTable* table;
-    // vregMap data structure for vreg value monitoring
-    // vreg value can be not in symbol table
-    // vRegPos => index -> memory pos
-    // vRegCode => index -> assembly code
-    AssemblyBlock asmBlock;
-    std::unordered_map<int, MemoryPosition> vrMemoryPos;
-    std::unordered_map<int, AssemblyBlock> vrBlocks;
+isaselector::ISAMatchFailed::ISAMatchFailed(std::string reason): reason(reason) {}
 
+const char* isaselector::ISAMatchFailed::what() const throw() {
+    std::stringstream ss;
+    ss << "ISA Match failed with reason: " << reason;
+    return ss.str().c_str();
+}
+
+#define ISAMatchIncorrectFormat ISAMatchFailed("Incorrect format (not simplified)")
+
+#define else_throw_exception(exception) \
+    else { \
+        throw exception; \
+    }
+
+void isaselector::match(AssemblyBlock& asmBlock, JumpTable& jtable, ThreeAddressCodeBlock &block, SymbolTable& table) noexcept(false) {
+    MemoryPosition mdest;
+    MemoryPosition mop1;
+    MemoryPosition mop2;
+    LabelIdentifier ll;
+    Operand* vvv[3] = {nullptr, nullptr, nullptr};
+    MemoryPosition* mmm[3] = {&mdest, &mop1, &mop2};
+    // offset in generated code for jump table
+    uint64_t asmOffset = asmBlock.size();
+    
     for (const ThreeAddressCode& tac : block.codes()) {
-        if (tac.op == Operator::LOAD) {
-//            if (auto* dest = dynamic_cast<VirtualRegisterOperand*>(tac.destination.get())) {
-//                Operand* operand = tac.firstOperand.get();
-//                if (operand->staticMemoryPosition()) {
-//                    // check symbol table
-//                    //vrBlocks[dest->index]
-//                } else {
-//                    vrBlocks[dest->index] = loadToP0(operand, *table);
-//                }
-//            }
-        } else if (tac.op == Operator::STDIN) {
-            asmBlock.push_back(Assembly::Get());
-            // GET
-            // STORE (table[tac.dest].memoryPosition())
-        } else if (tac.op == Operator::STDOUT) {
-            if (ConstantOperand* cop = dynamic_cast<ConstantOperand*>(tac.firstOperand.get())) {
-                AssemblyBlock cBlock = loadToP0(cop->value);
-                asmBlock.insert(asmBlock.end(), cBlock.begin(), cBlock.end());
+        vvv[0] = tac.destination.get();
+        vvv[1] = tac.firstOperand.get();
+        vvv[2] = tac.secondOperand.get();
+        int nArgs = ThreeAddressCode::OperatorNArgs[static_cast<int>(tac.op)];
+        for (int i = 0; i < nArgs && i < 3; i++) {
+            if (vvv[i] == nullptr)
+                throw ISAMatchFailed("Operand has too few operands!");
+
+            *(mmm[i]) = vvv[i]->memoryPosition(table); // TODO expeption
+        }
+        if (nArgs == 0) {
+            if (!tac.label.has_value())
+                throw ISAMatchFailed("Operand has JUMP op and no label!");
+            ll = tac.label.value();
+        }
+
+        switch (tac.op) {
+            case Operator::LOAD:
+                // load if dest v0
+                // store if dest vi
+                if (mdest == 0) {
+                    asmBlock.push_back(Assembly::Load(mop1));
+                } else if (mop1 == 0) {
+                    asmBlock.push_back(Assembly::Store(mdest));
+                } else_throw_exception(ISAMatchIncorrectFormat);
+                break;
+            case Operator::LOAD_IND:
+                // loadi if dest v0
+                // store if dest vx
+                if (mdest == 0) {
+                    asmBlock.push_back(Assembly::LoadI(mop1));
+                } else if (mop1 == 0) {
+                    asmBlock.push_back(Assembly::StoreI(mdest));
+                } else_throw_exception(ISAMatchIncorrectFormat);
+                break;
+            case Operator::STDIN:
+                asmBlock.push_back(Assembly::Get());
+                break;
+            case Operator::STDOUT:
                 asmBlock.push_back(Assembly::Put());
-            } else {
-                // LOAD $operand
-                // PUT
+                break;
+            case Operator::ADD:
+                // load vop1
+                // add vop2
+                if (mdest == 0) {
+                    asmBlock.push_back(Assembly::Load(mop1));
+                    asmBlock.push_back(Assembly::Add(mop2));
+                } else_throw_exception(ISAMatchIncorrectFormat);
+                break;
+            case Operator::SUB:
+                // load vop1
+                // sub vop2
+                if (mdest == 0) {
+                    asmBlock.push_back(Assembly::Load(mop1));
+                    asmBlock.push_back(Assembly::Sub(mop2));
+                } else_throw_exception(ISAMatchIncorrectFormat);
+                break;
+            case Operator::JUMP:
+                // jump l
+                asmBlock.push_back(Assembly::Jump(ll));
+                break;
+            case Operator::JMINUS:
+                // jneg l
+                asmBlock.push_back(Assembly::JNeg(ll));
+                break;
+            case Operator::JZERO:
+                // jzero l
+                asmBlock.push_back(Assembly::JZero(ll));
+                break;
+            case Operator::JPLUS:
+                // jplus l
+                asmBlock.push_back(Assembly::JPos(ll));
+                break;
+            default:
+                throw ISAMatchFailed("Unsupported operation in isa match: " + std::to_string(tac.op));
+        }
+    }
+    // apply assembly offset to jump table
+    jtable[block.id()] = asmOffset;
+}
+
+
+
+AssemblyBlock isaselector::initialization(GlobalSymbolTable& symbolTable) {
+    AssemblyBlock asmBlock;
+    std::unordered_map<std::string, Record>& recordMap = symbolTable.allRecords();
+    for (auto& it : recordMap) {
+        Record record = it.second;
+        if (record.isMemoryLocation) {
+            std::string name = record.name.substr(3);
+            Record parentRecord = recordMap.at(name);
+            // code gen
+            loadValueToP0(asmBlock, parentRecord.memoryPosition());
+            asmBlock.push_back(Assembly::Store(record.memoryPosition()));
+        } else if (record.isConstant) {
+            std::string name = record.name.substr(3);
+            int64_t value = std::stoll(name);
+            loadValueToP0(asmBlock, value);
+            asmBlock.push_back(Assembly::Store(record.memoryPosition()));
+        }
+    }
+
+    //TODO temporary vars for multiplication
+
+    return asmBlock;
+}
+
+void isaselector::applyJumpTable(AssemblyBlock &asmBlock, JumpTable &jtable) noexcept(false) {
+    for (Assembly& assembly : asmBlock) {
+        std::string mnemonic = assembly.mnemonic();
+        // find jumps
+        if (mnemonic.size() != 0 && mnemonic[0] == 'J') {
+            if (!assembly.argument().has_value()) {
+                throw ISAMatchIncorrectFormat;
             }
-        } else if (tac.op == Operator::ADD) {
-            // LOAD $firstOperand
-            // ADD $secondOperand
-            // STORE $dest
-        } else if (tac.op == Operator::SUB) {
-            // LOAD $firstOperand
-            // SUB $secondOperand
-            // STORE $dest
-        } else if (tac.op == Operator::MUL) {
 
-        } else if (tac.op == Operator::DIV) {
-
-        } else if (tac.op == Operator::MOD) {
-
+            uint64_t argument = assembly.argument().value();
+            if (jtable.find(argument) == jtable.end()) {
+                // not found
+                throw ISAMatchFailed("Jump location not found: " + std::to_string(argument));
+            } else {
+                assembly.setArgument(jtable[argument]);
+            }
         }
     }
 }
 
-AssemblyBlock isaselector::matchStdin(Operand* operand, SymbolTable& table) {
-    AssemblyBlock block = { Assembly::Get() };
-    if (operand->hasStaticMemoryPosition()) {
-        MemoryPosition pos = operand->memoryPosition(table);
-        block.push_back(Assembly::Store(pos));
-    } else {
-        AssemblyBlock loadBlock = storeP0(operand, table);
-        block.insert(block.begin(), loadBlock.begin(), loadBlock.end());
-    }
-
-    return block;
-}
-
-AssemblyBlock isaselector::matchStdout(Operand* operand, SymbolTable& table) {
-    AssemblyBlock block;
-    if (operand->hasStaticMemoryPosition()) {
-        MemoryPosition pos = operand->memoryPosition(table); // can throw
-        block.push_back(Assembly::Load(pos));
-    } else {
-        AssemblyBlock loadBlock = loadToP0(operand, table);
-        block.insert(block.begin(), loadBlock.begin(), loadBlock.end());
-    }
-
-    block.push_back(Assembly::Put());
-
-    return block;
-}
-
-AssemblyBlock isaselector::loadToP0(int64_t value) {
-    AssemblyBlock block;
-
-    block.push_back(Assembly::Sub(0));
+void isaselector::loadValueToP0(AssemblyBlock& asmBlock, int64_t value) {
+    asmBlock.push_back(Assembly::Sub(0));
     if (value == 0) {
-        return block;
+        return;
     }
 
     Assembly inc = value > 0 ? Assembly::Inc() : Assembly::Dec();
     value = abs(value);
 
     if (value % 2 == 0) {
-        block.push_back(inc);
+        asmBlock.push_back(inc);
         value = value - 1;
     }
 
     while (value != 0) {
         if (value % 2 != 0) {
-            block.push_back(inc);
+            asmBlock.push_back(inc);
             value = value - 1;
         } else {
-            block.push_back(Assembly::Add(0));
+            asmBlock.push_back(Assembly::Add(0));
             value = value / 2;
         }
     }
-
-    return block;
-}
-
-AssemblyBlock isaselector::loadToP0(Operand* operand, SymbolTable& table) noexcept(false) {
-    if (operand->hasStaticMemoryPosition()) {
-        throw std::invalid_argument("operand");
-    }
-
-    AssemblyBlock block;
-    if (auto* cop = dynamic_cast<ConstantOperand*>(operand)) {
-        block = loadToP0(cop->value);
-    } else if (auto* asop = dynamic_cast<ArraySymbolOperand*>(operand)) {
-        Record r = table.search(asop->symbol);
-        MemoryPosition indexPos = asop->index->memoryPosition(table);
-        block = loadToP0((int64_t) r.memoryPosition());
-        block.push_back(Assembly::Add(indexPos));
-        block.push_back(Assembly::Store(MM_TEMP1));
-        block.push_back(Assembly::LoadI(MM_TEMP1));
-    }
-
-    return block;
-}
-
-AssemblyBlock isaselector::storeP0(Operand* operand, SymbolTable& table) noexcept(false) {
-    if (operand->hasStaticMemoryPosition()) {
-        throw std::invalid_argument("operand");
-    }
-
-    AssemblyBlock block;
-    if (auto* asop = dynamic_cast<ArraySymbolOperand*>(operand)) {
-        Record r = table.search(asop->symbol);
-        MemoryPosition indexPos = asop->index->memoryPosition(table);
-        block = loadToP0((int64_t) r.memoryPosition());
-        block.push_back(Assembly::Add(indexPos));
-        block.push_back(Assembly::Store(MM_TEMP1));
-        block.push_back(Assembly::StoreI(MM_TEMP1));
-    } else {
-        throw std::invalid_argument("operand");
-    }
-
-    return block;
 }
 
 uint64_t numberGenerationCost(int64_t n) {

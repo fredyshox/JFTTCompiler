@@ -67,7 +67,9 @@ ThreeAddressCodeBlock ForLoopBlock::pre() {
     ConstantOperand zero(0);
 
     Condition cond(counter, zero, Condition::Operator::NEQ);
-    return cond.toBlock(endLabel());
+    ThreeAddressCodeBlock block = cond.toBlock(endLabel());
+    block.setId(loopLabel());
+    return block;
 }
 
 ThreeAddressCodeBlock ForLoopBlock::post() {
@@ -81,6 +83,7 @@ ThreeAddressCodeBlock ForLoopBlock::post() {
     } else {
         iteratorUpdate = ThreeAddressCodeBlock::subtraction(iterator, iterator, step);
     }
+    ThreeAddressCodeBlock counterUpdate = ThreeAddressCodeBlock::subtraction(counter, counter, step);
     ThreeAddressCodeBlock counterUpdate = ThreeAddressCodeBlock::subtraction(counter, counter, step);
     ThreeAddressCode loopJump = ThreeAddressCodeBlock::jump(loopLabel(), JUMP_ALWAYS);
 

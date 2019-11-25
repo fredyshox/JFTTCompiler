@@ -3,10 +3,11 @@
 //
 
 #include "BaseBlock.hpp"
+#include "ThreeAddressCodeBlock.hpp"
 
 BaseBlock::BaseBlock() {
-    static uint64_t counter = 0;
-    _id = counter++;
+    _id = genLabel();
+    _next = nullptr;
 }
 
 BaseBlock* BaseBlock::next() {
@@ -23,4 +24,16 @@ uint64_t BaseBlock::id() {
 
 void BaseBlock::setId(uint64_t id) {
     _id = id;
+}
+
+std::list<ThreeAddressCodeBlock> BaseBlock::flattenBlockList(BaseBlock *block) {
+    BaseBlock* current = block;
+    std::list<ThreeAddressCodeBlock> total;
+    while (current != nullptr) {
+        std::list<ThreeAddressCodeBlock> f = current->flatten();
+        total.insert(total.end(), f.begin(), f.end());
+        current = current->next();
+    }
+
+    return total;
 }

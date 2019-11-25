@@ -21,11 +21,11 @@ private:
 public:
     explicit ThreeAddressCodeBlock(const std::list<ThreeAddressCode>& codes = {});
 
+    uint64_t size();
     std::list<ThreeAddressCode>& codes();
     void merge(ThreeAddressCodeBlock& block);
     void append(ThreeAddressCode& code);
-    // baseBlock to tac
-    static ThreeAddressCodeBlock* toTac(BaseBlock* baseBlock);
+    std::list<ThreeAddressCodeBlock> flatten() override;
     // factory
     static ThreeAddressCodeBlock addition(Operand& dest, Operand& op1, Operand& op2);
     static ThreeAddressCodeBlock subtraction(Operand& dest, Operand& op1, Operand& op2);

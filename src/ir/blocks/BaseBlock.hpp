@@ -6,6 +6,10 @@
 #define ir_baseblock_hpp
 
 #include <cstdint>
+#include <list>
+#include "Label.hpp"
+
+class ThreeAddressCodeBlock;
 
 /**
  * Base abstract class for blocks of code
@@ -23,6 +27,8 @@ public:
     void setNext(BaseBlock* next);
     uint64_t id();
     void setId(uint64_t id);
+    virtual std::list<ThreeAddressCodeBlock> flatten() = 0;
+    static std::list<ThreeAddressCodeBlock> flattenBlockList(BaseBlock* block);
     virtual ~BaseBlock() = default;
 };
 

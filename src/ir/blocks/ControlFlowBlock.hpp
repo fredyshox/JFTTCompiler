@@ -19,12 +19,13 @@
 class ControlFlowBlock: public BaseBlock {
 protected:
     NestedSymbolTable _localSymbolTable;
+    LabelIdentifier _endLabel;
 public:
     explicit ControlFlowBlock(NestedSymbolTable symbolTable): BaseBlock() {
         this->_localSymbolTable = symbolTable;
     }
     virtual ~ControlFlowBlock() = default;
-
+    virtual LabelIdentifier endLabel() = 0;
     NestedSymbolTable& localSymbolTable() {
         return _localSymbolTable;
     }
@@ -40,7 +41,6 @@ class LoopBlock: public ControlFlowBlock {
 private:
     LabelIdentifier _loopLabel;
     LabelIdentifier _bodyLabel;
-    LabelIdentifier _endLabel;
     BaseBlock* _body = nullptr;
 public:
     /**
@@ -71,6 +71,8 @@ public:
     }
 
     void setBody(BaseBlock* blocks) {
+        if (blocks != nullptr)
+            blocks->setId(bodyLabel());
         this->_body = blocks;
     }
 
@@ -78,12 +80,38 @@ public:
         return _loopLabel;
     }
 
-    LabelIdentifier endLabel() {
+    LabelIdentifier endLabel() override {
         return _endLabel;
     }
 
     LabelIdentifier bodyLabel() {
         return _bodyLabel;
+    }
+
+    std::list<ThreeAddressCodeBlock> flatten() override {
+        if (body() == nullptr) {
+            return {};
+        }
+
+        std::list<ThreeAddressCodeBlock> total;
+        ThreeAddressCodeBlock binit = init();
+        ThreeAddressCodeBlock bpre = pre();
+        ThreeAddressCodeBlock bpost = post();
+        if (binit.size() > 0) {
+            total.push_back(binit);
+        }
+        if (bpre.size() > 0) {
+            total.push_back(bpre);
+        }
+
+        std::list<ThreeAddressCodeBlock> flatBody = BaseBlock::flattenBlockList(body());
+        total.insert(total.end(), flatBody.begin(), flatBody.end());
+
+        if (bpost.size() > 0) {
+            total.push_back(bpost);
+        }
+
+        return total;
     }
 };
 

@@ -33,6 +33,8 @@ public:
     ThreeAddressCodeBlock condBody();
     LabelIdentifier passLabel();
     LabelIdentifier failLabel();
+    LabelIdentifier endLabel() override;
+    std::list<ThreeAddressCodeBlock> flatten() override;
 };
 
 #endif /* ir_conditionblock_hpp */

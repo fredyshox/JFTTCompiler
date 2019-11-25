@@ -11,7 +11,9 @@ ThreeAddressCodeBlock WhileLoopBlock::init() {
 }
 
 ThreeAddressCodeBlock WhileLoopBlock::pre() {
-    return _condition.toBlock(endLabel());
+    ThreeAddressCodeBlock block = _condition.toBlock(endLabel());
+    block.setId(loopLabel());
+    return block;
 }
 
 ThreeAddressCodeBlock WhileLoopBlock::post() {
