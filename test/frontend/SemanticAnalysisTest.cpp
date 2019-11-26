@@ -85,7 +85,7 @@ TEST_F(SemanticAnalysisTest, SymbolValidation) {
 
     // indexing not array element
     auto a1 = ASTAssignmentCreateWithOperand(ASTSymbolCreateArray("a", ASTIndexCreateValue(1)),
-                                             ASTOperandContant(2));
+                                             ASTOperandConstant(2));
     EXPECT_THROW(semanticanalysis::analyze(a1, sampleSymbolTable), semanticanalysis::SymbolException);
 
     // not indexing array element
@@ -94,8 +94,8 @@ TEST_F(SemanticAnalysisTest, SymbolValidation) {
     EXPECT_THROW(semanticanalysis::analyze(a1, sampleSymbolTable), semanticanalysis::SymbolException);
 
     // iterator mutation
-    auto a3 = ASTAssignmentCreateWithOperand(ASTSymbolCreateSimple("i"), ASTOperandContant(1));
-    auto f1 = ASTLoopCreateForTo("i", ASTOperandContant(1), ASTOperandContant(3),
+    auto a3 = ASTAssignmentCreateWithOperand(ASTSymbolCreateSimple("i"), ASTOperandConstant(1));
+    auto f1 = ASTLoopCreateForTo("i", ASTOperandConstant(1), ASTOperandConstant(3),
                                  ASTNodeCreate(kNodeAssignment, a3));
     auto f1node = ASTNodeCreate(kNodeForLoop, f1);
     EXPECT_THROW(semanticanalysis::analyze(f1node, sampleSymbolTable), semanticanalysis::SymbolException);
@@ -111,8 +111,8 @@ TEST_F(SemanticAnalysisTest, SymbolValidation) {
 }
 
 TEST_F(SemanticAnalysisTest, DuplicateIterator) {
-    auto a1 = ASTAssignmentCreateWithOperand(ASTSymbolCreateSimple("c"), ASTOperandContant(1));
-    auto f1 = ASTLoopCreateForTo("a", ASTOperandContant(1), ASTOperandContant(3),
+    auto a1 = ASTAssignmentCreateWithOperand(ASTSymbolCreateSimple("c"), ASTOperandConstant(1));
+    auto f1 = ASTLoopCreateForTo("a", ASTOperandConstant(1), ASTOperandConstant(3),
                                  ASTNodeCreate(kNodeAssignment, a1));
     EXPECT_THROW(semanticanalysis::analyze(f1, sampleSymbolTable), semanticanalysis::SymbolException);
 

@@ -42,6 +42,7 @@ bool GlobalSymbolTable::contains(std::string key) {
 GlobalSymbolTable* GlobalSymbolTable::copy() const {
     GlobalSymbolTable* table = new GlobalSymbolTable();
     table->dict = std::unordered_map(this->dict);
+    table->records = std::unordered_map(this->records);
     return table;
 }
 

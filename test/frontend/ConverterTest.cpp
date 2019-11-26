@@ -26,8 +26,8 @@ protected:
 
     ASTNode *createSampleBody() {
         ASTSymbol s = ASTSymbolCreateSimple((char*) recordName);
-        ASTAssignment *a1 = ASTAssignmentCreateWithOperand(s, ASTOperandContant(12));
-        ASTExpression expr = ASTExpressionCreate(ASTOperandSymbol(s), ASTOperandContant(10), kOperatorAdd);
+        ASTAssignment *a1 = ASTAssignmentCreateWithOperand(s, ASTOperandConstant(12));
+        ASTExpression expr = ASTExpressionCreate(ASTOperandSymbol(s), ASTOperandConstant(10), kOperatorAdd);
         ASTAssignment *a2 = ASTAssignmentCreateWithExpression(s, expr);
         ASTNode *n1 = ASTNodeCreate(kNodeAssignment, a1);
         ASTNode *n2 = ASTNodeCreate(kNodeAssignment, a2);
@@ -37,16 +37,21 @@ protected:
     }
 
     ASTOperand abcOperand() {
-        auto s = ASTSymbolCreateSimple((char*) recordName);
+        auto s = ASTSymbolCreateSimple((char *) recordName);
         return ASTOperandSymbol(s);
     }
 
     void testSampleBody(BaseBlock* block) {
-        ASSERT_TRUE(block != nullptr);
-        ThreeAddressCodeBlock* tac;
-        ASSERT_FALSE((tac = dynamic_cast<ThreeAddressCodeBlock*>(block)) == nullptr);
-        ASSERT_EQ(tac->codes().size(), (unsigned long) 5); // merged 2 + 3
-        ASSERT_TRUE(tac->next() == nullptr);
+        std::vector<unsigned long> sizes { 2, 4 };
+        BaseBlock* current = block;
+        for (int i = 0; i < 2; i++) {
+            ASSERT_TRUE(current != nullptr);
+            ThreeAddressCodeBlock* tac;
+            ASSERT_FALSE((tac = dynamic_cast<ThreeAddressCodeBlock*>(current)) == nullptr);
+            EXPECT_EQ(tac->size(), sizes[i]);
+            current = current->next();
+        }
+        ASSERT_TRUE(current == nullptr);
     }
 
     // setup/teardown
@@ -95,7 +100,7 @@ TEST_F(ConverterTest, SymbolTableConvertion) {
 }
 
 TEST_F(ConverterTest, ForLoop) {
-    ASTForLoop *forLoop = ASTLoopCreateForTo("i", ASTOperandContant(1), abcOperand(), sampleBody);
+    ASTForLoop *forLoop = ASTLoopCreateForTo("i", ASTOperandConstant(1), abcOperand(), sampleBody);
     auto* forBlock = irconverter::convert(*forLoop, sampleSymbolTable->copy());
     // iterator name
     EXPECT_EQ(forBlock->iteratorName(), "i");
@@ -110,7 +115,7 @@ TEST_F(ConverterTest, ForLoop) {
     // loop body
 
     free(forLoop);
-    forLoop = ASTLoopCreateForDownTo("i", ASTOperandContant(1), abcOperand(), sampleBody);
+    forLoop = ASTLoopCreateForDownTo("i", ASTOperandConstant(1), abcOperand(), sampleBody);
     forBlock = irconverter::convert(*forLoop, sampleSymbolTable->copy());
     EXPECT_EQ(forBlock->loopRange().step, -1);
 
@@ -119,7 +124,7 @@ TEST_F(ConverterTest, ForLoop) {
 }
 
 TEST_F(ConverterTest, WhileLoop) {
-    auto cond = ASTConditionCreate(ASTOperandContant(4), abcOperand(), kCondOperatorLess);
+    auto cond = ASTConditionCreate(ASTOperandConstant(4), abcOperand(), kCondOperatorLess);
     ASTWhileLoop* wloop = ASTLoopCreateWhile(cond, sampleBody);
     auto* whileBlock = irconverter::convert(*wloop, sampleSymbolTable->copy());
     // condition
@@ -145,7 +150,7 @@ TEST_F(ConverterTest, WhileLoop) {
 }
 
 TEST_F(ConverterTest, Branch) {
-    auto cond = ASTConditionCreate(abcOperand(), ASTOperandContant(11), kCondOperatorEqual);
+    auto cond = ASTConditionCreate(abcOperand(), ASTOperandConstant(11), kCondOperatorEqual);
     ASTBranch* branch = ASTBranchCreateWithElse(cond, sampleBody, sampleBody);
     auto* condBlock = irconverter::convert(*branch, sampleSymbolTable);
     // condition

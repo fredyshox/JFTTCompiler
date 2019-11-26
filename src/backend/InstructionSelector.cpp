@@ -32,12 +32,12 @@ std::list<ThreeAddressCodeBlock> isaselector::expand(BaseBlock &program, GlobalS
         record.offset = currentPos;
         currentPos += record.size;
         if (record.type == Record::ARRAY) {
-            std::string memLocName = Record::memoryLocationName(record.name);
-            Record m = Record::integer(memLocName);
+            Record m = Record::memoryLocation(record.name);
             m.offset = currentPos++;
-            symbolTable.insert(memLocName, m);
+            symbolTable.insert(m.name, m);
         }
     }
+    // TODO CONSTANTS!!!
 
     return flatTacs;
 }
@@ -163,16 +163,12 @@ void isaselector::simplify(ThreeAddressCodeBlock &block, SymbolTable& table) {
 
         ++it;
     }
-
-    // optimize tac block
 }
 
-isaselector::ISAMatchFailed::ISAMatchFailed(std::string reason): reason(reason) {}
+isaselector::ISAMatchFailed::ISAMatchFailed(std::string message): message("ISA Match failed with reason: " + message) {}
 
 const char* isaselector::ISAMatchFailed::what() const throw() {
-    std::stringstream ss;
-    ss << "ISA Match failed with reason: " << reason;
-    return ss.str().c_str();
+    return message.c_str();
 }
 
 #define ISAMatchIncorrectFormat ISAMatchFailed("Incorrect format (not simplified)")
@@ -191,7 +187,7 @@ void isaselector::match(AssemblyBlock& asmBlock, JumpTable& jtable, ThreeAddress
     MemoryPosition* mmm[3] = {&mdest, &mop1, &mop2};
     // offset in generated code for jump table
     uint64_t asmOffset = asmBlock.size();
-    
+
     for (const ThreeAddressCode& tac : block.codes()) {
         vvv[0] = tac.destination.get();
         vvv[1] = tac.firstOperand.get();
@@ -274,10 +270,7 @@ void isaselector::match(AssemblyBlock& asmBlock, JumpTable& jtable, ThreeAddress
     jtable[block.id()] = asmOffset;
 }
 
-
-
-AssemblyBlock isaselector::initialization(GlobalSymbolTable& symbolTable) {
-    AssemblyBlock asmBlock;
+void isaselector::initializationBlock(AssemblyBlock& asmBlock, GlobalSymbolTable& symbolTable) {
     std::unordered_map<std::string, Record>& recordMap = symbolTable.allRecords();
     for (auto& it : recordMap) {
         Record record = it.second;
@@ -294,8 +287,11 @@ AssemblyBlock isaselector::initialization(GlobalSymbolTable& symbolTable) {
             asmBlock.push_back(Assembly::Store(record.memoryPosition()));
         }
     }
+}
 
-    return asmBlock;
+void isaselector::terminationBlock(AssemblyBlock &asmBlock, JumpTable &jtable) {
+    asmBlock.push_back(Assembly::Halt());
+    jtable[LABEL_END] = asmBlock.size() - 1;
 }
 
 void isaselector::applyJumpTable(AssemblyBlock &asmBlock, JumpTable &jtable) noexcept(false) {

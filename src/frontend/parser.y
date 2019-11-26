@@ -74,7 +74,7 @@
   ExprVal exprval;
   char* s;
   int i;
-  uint64_t ull;
+  int64_t ll;
 }
 
 /* token/type - type associations */
@@ -92,7 +92,7 @@
 %token OPEN CLOSE
 /* number and identifiers */
 %token <s> ID
-%token <ull> NUMBER
+%token <ll> NUMBER
 /* nonterminals */
 %type <node> command
 %type <cmdlist> commands
@@ -103,6 +103,7 @@
 %type <decl> declaration
 %type <declist> declarations
 %type <symbol> identifier
+%type <ll> number
 
 %%
 
@@ -223,8 +224,12 @@ op_expression: value ADD value { $$ = ASTExpressionCreate($1, $3, kOperatorAdd);
 ;
 
   /* Type: ASTOperand */
-value: NUMBER { $$ = ASTOperandContant($1); }
+value: number { $$ = ASTOperandConstant($1); }
   | identifier { $$ = ASTOperandSymbol($1); }
+;
+
+number: SUB NUMBER { $$ = -1 * $2; }
+  | NUMBER { $$ = $1; }
 ;
 
   /* Type: char* */

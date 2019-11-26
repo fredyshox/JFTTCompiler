@@ -18,7 +18,7 @@ struct ASTOperand {
 
 typedef struct ASTOperand ASTOperand;
 
-ASTOperand ASTOperandContant(ASTConstant value);
+ASTOperand ASTOperandConstant(ASTConstant value);
 ASTOperand ASTOperandSymbol(ASTSymbol symbol);
 bool ASTOperandEqual(ASTOperand op1, ASTOperand op2);
 

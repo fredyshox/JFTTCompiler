@@ -47,6 +47,7 @@ struct GenericThreeAddressCode {
     }
     GenericThreeAddressCode(const GenericThreeAddressCode& tac) {
         this->op = tac.op;
+        this->label = tac.label;
         if (tac.destination)
             this->destination = tac.destination->copy();
         if (tac.firstOperand)
@@ -56,6 +57,7 @@ struct GenericThreeAddressCode {
     }
     GenericThreeAddressCode& operator=(const GenericThreeAddressCode &tac) {
         this->op = tac.op;
+        this->label = tac.label;
         if (tac.destination)
             this->destination = tac.destination->copy();
         if (tac.firstOperand)

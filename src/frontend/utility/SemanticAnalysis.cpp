@@ -6,17 +6,13 @@
 
 semanticanalysis::SemanticAnalysisException::SemanticAnalysisException(std::string cause): cause(cause) {}
 
-const char* semanticanalysis::SymbolException::what() const throw() {
-    std::stringstream ss;
-    ss << "SymbolException: " << cause << ".";
-    return ss.str().c_str();
+const char* semanticanalysis::SemanticAnalysisException::what() const throw() {
+    return cause.c_str();
 }
 
-const char* semanticanalysis::DeclarationException::what() const throw() {
-    std::stringstream ss;
-    ss << "DeclarationException: " << cause << ".";
-    return ss.str().c_str();
-}
+semanticanalysis::SymbolException::SymbolException(std::string cause): SemanticAnalysisException("SymbolException: " + cause) {}
+
+semanticanalysis::DeclarationException::DeclarationException(std::string cause): SemanticAnalysisException("DeclarationException: " + cause) {}
 
 void semanticanalysis::analyze(ASTDeclarationList *decList) {
     std::unordered_set<std::string> set;

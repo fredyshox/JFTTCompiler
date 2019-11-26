@@ -11,6 +11,7 @@ set(CMAKE_C_FLAGS "-g")
 add_subdirectory(src/frontend)
 add_subdirectory(src/backend)
 add_subdirectory(src/ir)
+add_subdirectory(src/compiler)
 
 message(STATUS "SDfsdfdsfsdF")
 

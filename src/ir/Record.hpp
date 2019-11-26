@@ -61,6 +61,12 @@ struct Record {
         r.isConstant = true;
         return r;
     }
+    
+    static Record memoryLocation(std::string name) {
+        Record r = Record::integer(memoryLocationName(name));
+        r.isMemoryLocation = true;
+        return r;
+    }
 
     static std::string constantName(int64_t value) {
         return "__c" + std::to_string(value);

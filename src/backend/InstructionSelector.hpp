@@ -21,8 +21,8 @@ using JumpTable = std::unordered_map<LabelIdentifier, uint64_t>;
 
 namespace isaselector {
     struct ISAMatchFailed: public std::exception {
-        const std::string reason;
-        explicit ISAMatchFailed(std::string reason);
+        const std::string message;
+        explicit ISAMatchFailed(std::string message);
         const char* what() const throw() override;
     };
 
@@ -39,7 +39,7 @@ namespace isaselector {
     void simplify(ThreeAddressCodeBlock& block, SymbolTable& table);
 
     /**
-     * Matches three address code to target isa instructions.
+     * Matches three address code to target isa instructions using abstract jump locations.
      * @param block block to match instructions to
      */
     void match(AssemblyBlock& asmBlock, JumpTable& jtable, ThreeAddressCodeBlock& block, SymbolTable& table) noexcept(false);
@@ -48,7 +48,14 @@ namespace isaselector {
      * Adds memory map initialization block
      * @param allRecords
      */
-    AssemblyBlock initialization(GlobalSymbolTable& symbolTable);
+    void initializationBlock(AssemblyBlock& asmBlock, GlobalSymbolTable& symbolTable);
+
+    /**
+     * Adds program ending block
+     * @param asmBlock
+     * @param jtable
+     */
+    void terminationBlock(AssemblyBlock& asmBlock, JumpTable& jtable);
 
     /**
      * Converts abstract jump locations into real one

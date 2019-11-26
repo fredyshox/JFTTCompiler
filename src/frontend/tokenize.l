@@ -101,8 +101,8 @@ END {
 
   /* number */
 [0-9]+ {
-  // yylval is uint64_t
-  yylval.ull = strtoull(yytext, NULL, 10);
+  // yylval is int64_t
+  yylval.ll = strtoll(yytext, NULL, 10);
   return NUMBER;
 }
 

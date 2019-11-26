@@ -24,16 +24,17 @@ namespace semanticanalysis {
 struct SemanticAnalysisException: public std::exception {
     std::string cause;
     explicit SemanticAnalysisException(std::string cause);
+    const char* what() const throw() override;
 };
 
 struct SymbolException: public SemanticAnalysisException {
     using SemanticAnalysisException::SemanticAnalysisException;
-    const char* what() const throw() override;
+    explicit SymbolException(std::string cause);
 };
 
 struct DeclarationException: public SemanticAnalysisException {
     using SemanticAnalysisException::SemanticAnalysisException;
-    const char* what() const throw() override;
+    explicit DeclarationException(std::string cause);
 };
 
 

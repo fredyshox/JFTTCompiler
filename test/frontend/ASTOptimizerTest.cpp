@@ -15,7 +15,7 @@ using namespace std;
 
 ASTNode* trivialNode() {
     // branch with no body
-    ASTCondition cond = ASTConditionCreate(ASTOperandContant(1), ASTOperandContant(2), kCondOperatorLess);
+    ASTCondition cond = ASTConditionCreate(ASTOperandConstant(1), ASTOperandConstant(2), kCondOperatorLess);
     ASTBranch* branch = ASTBranchCreate(cond, nullptr);
     ASTNode* node = ASTNodeCreate(kNodeBranch, branch);
 
@@ -25,7 +25,7 @@ ASTNode* trivialNode() {
 ASTNode* nonTrivialNode() {
     // standard constant assignment
     ASTSymbol symbol = ASTSymbolCreateSimple("a");
-    ASTAssignment* assignment = ASTAssignmentCreateWithOperand(symbol, ASTOperandContant(1));
+    ASTAssignment* assignment = ASTAssignmentCreateWithOperand(symbol, ASTOperandConstant(1));
     ASTNode* node = ASTNodeCreate(kNodeAssignment, assignment);
 
     return node;
@@ -47,11 +47,11 @@ TEST(ASTOptimizerTest, TrivialAssignments) {
 
 TEST(ASTOptimizerTest, TrivialConditions) {
     // rest of operators?
-    auto c1 = ASTConditionCreate(ASTOperandContant(3), ASTOperandContant(1), kCondOperatorGreater);
+    auto c1 = ASTConditionCreate(ASTOperandConstant(3), ASTOperandConstant(1), kCondOperatorGreater);
     auto* branch = ASTBranchCreateWithElse(c1, nonTrivialNode(), nonTrivialNode());
     EXPECT_EQ(astoptimizer::optimize(branch), ACTION_EXTRACT_BODY1);
 
-    auto c2 = ASTConditionCreate(ASTOperandContant(3), ASTOperandContant(1), kCondOperatorLess);
+    auto c2 = ASTConditionCreate(ASTOperandConstant(3), ASTOperandConstant(1), kCondOperatorLess);
     branch->condition = c2;
     EXPECT_EQ(astoptimizer::optimize(branch), ACTION_EXTRACT_BODY2);
 
@@ -86,7 +86,7 @@ TEST(ASTOptimizerTest, TrivialConditions) {
 
 TEST(ASTOptimizerTest, ForLoopRanges) {
     auto* body = ASTNodeCreate(kNodeIO, ASTIOCreateRead(ASTSymbolCreateSimple("q")));
-    auto* forLoop = ASTLoopCreateForTo("i", ASTOperandContant(1), ASTOperandContant(0), body);
+    auto* forLoop = ASTLoopCreateForTo("i", ASTOperandConstant(1), ASTOperandConstant(0), body);
     EXPECT_EQ(astoptimizer::optimize(forLoop), ACTION_REMOVE);
 
     forLoop->type = kLoopForDownTo;
@@ -107,7 +107,7 @@ TEST(ASTOptimizerTest, ForLoopRanges) {
 
 TEST(ASTOptimizerTest, ExpressionCompression) {
     auto symbol = ASTSymbolCreateSimple("a");
-    auto expr = ASTExpressionCreate(ASTOperandContant(2), ASTOperandContant(5), kOperatorAdd);
+    auto expr = ASTExpressionCreate(ASTOperandConstant(2), ASTOperandConstant(5), kOperatorAdd);
     auto* a1 = ASTAssignmentCreateWithExpression(symbol, expr);
     EXPECT_EQ(astoptimizer::optimize(a1), ACTION_EDIT);
     EXPECT_EQ(a1->rtype, kRTypeOperand);
@@ -115,7 +115,7 @@ TEST(ASTOptimizerTest, ExpressionCompression) {
     ASSERT_EQ(a1->operand.constant, (ASTConstant) 7);
 
     expr.op = kOperatorDiv;
-    expr.operand2 = ASTOperandContant(0);
+    expr.operand2 = ASTOperandConstant(0);
     auto* a2 = ASTAssignmentCreateWithExpression(symbol, expr);
     EXPECT_EQ(astoptimizer::optimize(a2), ACTION_EDIT);
     EXPECT_EQ(a2->rtype, kRTypeOperand);

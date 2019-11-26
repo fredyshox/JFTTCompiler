@@ -1,6 +1,6 @@
 #include "operand.h"
 
-ASTOperand ASTOperandContant(ASTConstant value) {
+ASTOperand ASTOperandConstant(ASTConstant value) {
   ASTOperand operand;
   operand.type = kOperandConstant;
   operand.constant = value;
