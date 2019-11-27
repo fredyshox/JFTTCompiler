@@ -33,10 +33,11 @@ std::list<ThreeAddressCodeBlock> ThreeAddressCodeBlock::flatten() {
 ThreeAddressCodeBlock ThreeAddressCodeBlock::binaryOperation(Operand &dest,
                                                               Operand &op1,
                                                               Operand &op2,
-                                                              ThreeAddressCode::Operator op) {
-    auto v1 = VirtualRegisterOperand(1);
-    auto v2 = VirtualRegisterOperand(2);
-    auto v3 = VirtualRegisterOperand(3);
+                                                              ThreeAddressCode::Operator op,
+                                                              uint64_t initialVIndex) {
+    auto v1 = VirtualRegisterOperand(initialVIndex++);
+    auto v2 = VirtualRegisterOperand(initialVIndex++);
+    auto v3 = VirtualRegisterOperand(initialVIndex);
 
     std::list<ThreeAddressCode> instructionList = {
             ThreeAddressCode(v1.copy(), ThreeAddressCode::Operator::LOAD, op1.copy()),
@@ -49,36 +50,48 @@ ThreeAddressCodeBlock ThreeAddressCodeBlock::binaryOperation(Operand &dest,
 
 ThreeAddressCodeBlock ThreeAddressCodeBlock::addition(Operand &dest,
                                                        Operand &op1,
-                                                       Operand &op2) {
-    return binaryOperation(dest, op1, op2, ThreeAddressCode::Operator::ADD);
+                                                       Operand &op2,
+                                                       uint64_t initialVIndex) {
+    return binaryOperation(dest, op1, op2, ThreeAddressCode::Operator::ADD, initialVIndex);
 }
 
 ThreeAddressCodeBlock ThreeAddressCodeBlock::subtraction(Operand &dest,
-                                                           Operand &op1,
-                                                           Operand &op2) {
-    return binaryOperation(dest, op1, op2, ThreeAddressCode::Operator::SUB);
+                                                         Operand &op1,
+                                                         Operand &op2,
+                                                         uint64_t initialVIndex) {
+    return binaryOperation(dest, op1, op2, ThreeAddressCode::Operator::SUB, initialVIndex);
 }
 
 ThreeAddressCodeBlock ThreeAddressCodeBlock::multiplication(Operand &dest,
-                                                             Operand &op1,
-                                                             Operand &op2) {
-    return binaryOperation(dest, op1, op2, ThreeAddressCode::Operator::MUL);
+                                                            Operand &op1,
+                                                            Operand &op2,
+                                                            uint64_t initialVIndex) {
+    return binaryOperation(dest, op1, op2, ThreeAddressCode::Operator::MUL, initialVIndex);
 }
 
 ThreeAddressCodeBlock ThreeAddressCodeBlock::division(Operand &dest,
-                                                       Operand &op1,
-                                                       Operand &op2) {
-    return binaryOperation(dest, op1, op2, ThreeAddressCode::Operator::DIV);
+                                                      Operand &op1,
+                                                      Operand &op2,
+                                                      uint64_t initialVIndex) {
+    return binaryOperation(dest, op1, op2, ThreeAddressCode::Operator::DIV, initialVIndex);
 }
 
 ThreeAddressCodeBlock ThreeAddressCodeBlock::remainder(Operand &dest,
-                                                             Operand &op1,
-                                                             Operand &op2) {
-    return binaryOperation(dest, op1, op2, ThreeAddressCode::Operator::MOD);
+                                                       Operand &op1,
+                                                       Operand &op2,
+                                                       uint64_t initialVIndex) {
+    return binaryOperation(dest, op1, op2, ThreeAddressCode::Operator::MOD, initialVIndex);
 }
 
-ThreeAddressCodeBlock ThreeAddressCodeBlock::read(Operand &dest) {
-    auto v1 = VirtualRegisterOperand(1);
+ThreeAddressCodeBlock ThreeAddressCodeBlock::shift(Operand &dest,
+                                                   Operand &op1,
+                                                   Operand &op2,
+                                                   uint64_t initialVIndex) {
+    return binaryOperation(dest, op1, op2, ThreeAddressCode::Operator::LSHIFT, initialVIndex);
+}
+
+ThreeAddressCodeBlock ThreeAddressCodeBlock::read(Operand &dest, uint64_t initialVIndex) {
+    auto v1 = VirtualRegisterOperand(initialVIndex);
     std::list<ThreeAddressCode> instructionList {
             ThreeAddressCode(v1.copy(), ThreeAddressCode::Operator::STDIN),
             ThreeAddressCode(dest.copy(), ThreeAddressCode::Operator::LOAD, v1.copy())
@@ -86,8 +99,8 @@ ThreeAddressCodeBlock ThreeAddressCodeBlock::read(Operand &dest) {
     return ThreeAddressCodeBlock(instructionList);
 }
 
-ThreeAddressCodeBlock ThreeAddressCodeBlock::write(Operand &source) {
-    auto v1 = VirtualRegisterOperand(1);
+ThreeAddressCodeBlock ThreeAddressCodeBlock::write(Operand &source, uint64_t initialVIndex) {
+    auto v1 = VirtualRegisterOperand(initialVIndex);
     std::list<ThreeAddressCode> instructionList {
             ThreeAddressCode(v1.copy(), ThreeAddressCode::Operator::LOAD, source.copy()),
             ThreeAddressCode(v1.copy(), ThreeAddressCode::Operator::STDOUT),
@@ -96,8 +109,9 @@ ThreeAddressCodeBlock ThreeAddressCodeBlock::write(Operand &source) {
 }
 
 ThreeAddressCodeBlock ThreeAddressCodeBlock::copy(Operand &dest,
-                                                  Operand& source) {
-    auto v1 = VirtualRegisterOperand(1);
+                                                  Operand& source,
+                                                  uint64_t initialVIndex) {
+    auto v1 = VirtualRegisterOperand(initialVIndex);
     std::list<ThreeAddressCode> instructionList {
         ThreeAddressCode(v1.copy(), ThreeAddressCode::Operator::LOAD, source.copy()),
         ThreeAddressCode(dest.copy(), ThreeAddressCode::Operator::LOAD, v1.copy())

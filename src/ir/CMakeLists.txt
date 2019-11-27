@@ -10,6 +10,7 @@ set(ir_SOURCES
   blocks/ForLoopBlock.cpp
   blocks/ConditionBlock.cpp
   blocks/WhileLoopBlock.cpp
+  blocks/MultiplicationBlock.cpp
   blocks/ThreeAddressCodeBlock.cpp)
 
 set(GLOB_RECURSE ir_HEADERS ./*.hpp)

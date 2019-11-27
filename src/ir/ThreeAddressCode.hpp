@@ -16,7 +16,7 @@ struct GenericThreeAddressCode {
 
     // MARK: Types
     enum Operator {
-        LOAD, LOAD_IND, ADD, SUB, MUL, DIV, MOD, STDIN, STDOUT, JUMP, JPLUS, JMINUS, JZERO
+        LOAD, LOAD_IND, ADD, SUB, MUL, DIV, MOD, STDIN, STDOUT, JUMP, JPLUS, JMINUS, JZERO, LSHIFT
     };
 
     static constexpr int OperatorNArgs[] = {2, 2, 3, 3, 3, 3, 3, 1, 1, 0, 0, 0, 0};

@@ -17,7 +17,7 @@
 class ThreeAddressCodeBlock: public BaseBlock {
 private:
     std::list<ThreeAddressCode> _codes;
-    static ThreeAddressCodeBlock binaryOperation(Operand& dest, Operand& op1, Operand& op2, ThreeAddressCode::Operator op);
+    static ThreeAddressCodeBlock binaryOperation(Operand& dest, Operand& op1, Operand& op2, ThreeAddressCode::Operator op, uint64_t initialVIndex);
 public:
     explicit ThreeAddressCodeBlock(const std::list<ThreeAddressCode>& codes = {});
 
@@ -27,14 +27,15 @@ public:
     void append(ThreeAddressCode& code);
     std::list<ThreeAddressCodeBlock> flatten() override;
     // factory
-    static ThreeAddressCodeBlock addition(Operand& dest, Operand& op1, Operand& op2);
-    static ThreeAddressCodeBlock subtraction(Operand& dest, Operand& op1, Operand& op2);
-    static ThreeAddressCodeBlock multiplication(Operand& dest, Operand& op1, Operand& op2);
-    static ThreeAddressCodeBlock division(Operand& dest, Operand& op1, Operand& op2);
-    static ThreeAddressCodeBlock remainder(Operand& dest, Operand& op1, Operand& op2);
-    static ThreeAddressCodeBlock read(Operand& dest);
-    static ThreeAddressCodeBlock write(Operand& source);
-    static ThreeAddressCodeBlock copy(Operand& dest, Operand& source);
+    static ThreeAddressCodeBlock addition(Operand& dest, Operand& op1, Operand& op2, uint64_t initialVIndex = 1);
+    static ThreeAddressCodeBlock subtraction(Operand& dest, Operand& op1, Operand& op2, uint64_t initialVIndex = 1);
+    static ThreeAddressCodeBlock multiplication(Operand& dest, Operand& op1, Operand& op2, uint64_t initialVIndex = 1);
+    static ThreeAddressCodeBlock division(Operand& dest, Operand& op1, Operand& op2, uint64_t initialVIndex = 1);
+    static ThreeAddressCodeBlock remainder(Operand& dest, Operand& op1, Operand& op2, uint64_t initialVIndex = 1);
+    static ThreeAddressCodeBlock shift(Operand& dest, Operand& op1, Operand& op2, uint64_t initialVIndex = 1);
+    static ThreeAddressCodeBlock read(Operand& dest, uint64_t initialVIndex = 1);
+    static ThreeAddressCodeBlock write(Operand& source, uint64_t initialVIndex = 1);
+    static ThreeAddressCodeBlock copy(Operand& dest, Operand& source, uint64_t initialVIndex = 1);
     static ThreeAddressCode jump(LabelIdentifier label, int jtype);
 };
 

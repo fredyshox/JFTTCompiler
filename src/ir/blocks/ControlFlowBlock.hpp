@@ -43,17 +43,17 @@ public:
     /**
     * Returns block of three address codes, that must be placed before loop body.
     * Used as initialization block for loop resources.
-    * @return pointer to block of three address codes or nullptr
+    * @return block of three address codes or empty block
     */
     virtual ThreeAddressCodeBlock init() = 0;
     /**
      * Returns block of three address codes, that is to be executed at the beginning of each iteration.
-     * @return pointer to block of three address codes or nullptr
+     * @return block of three address codes or empty block
      */
     virtual ThreeAddressCodeBlock pre() = 0;
     /**
      * Returns block of three address codes, that is to be executed at the end of each iteration.
-     * @return pointer to block of three address codes or nullptr
+     * @return block of three address codes or empty block
      */
     virtual ThreeAddressCodeBlock post() = 0;
 

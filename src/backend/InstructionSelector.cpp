@@ -54,7 +54,7 @@ std::list<ThreeAddressCodeBlock> isaselector::expand(BaseBlock &program, GlobalS
     std::vector<std::string> keys(recordMap.size());
     auto keySelector = [](auto pair) { return pair.first; };
     std::transform(recordMap.begin(), recordMap.end(), keys.begin(), keySelector);
-     MemoryPosition currentPos = MM_TEMP5 + 1;
+    MemoryPosition currentPos = MM_TEMP5 + 1;
     for (const std::string& key : keys) {
         Record& record = recordMap.at(key);
         record.offset = currentPos;
@@ -73,6 +73,7 @@ void isaselector::simplify(ThreeAddressCodeBlock &block, SymbolTable& table) {
     std::unordered_map<uint64_t, MemoryPosition> vrMemoryPos;
     std::list<ThreeAddressCode>& codes = block.codes();
     MemoryPosition currentTemp = MM_TEMP1;
+    std::optional<MemoryPosition> lastDestinationVIndex = std::nullopt;
 
     auto it = codes.begin();
     while (it != codes.end()) {
@@ -80,6 +81,7 @@ void isaselector::simplify(ThreeAddressCodeBlock &block, SymbolTable& table) {
         if (code.op == Operator::LOAD) {
             if (auto* vreg = dynamic_cast<VirtualRegisterOperand*>(code.destination.get())) {
                 // vreg dest
+                lastDestinationVIndex = vreg->index;
                 if (code.firstOperand->hasStaticMemoryPosition()) {
                     // vreg <- a/1/b[1]/v
                     MemoryPosition pos = code.firstOperand->memoryPosition(table);
@@ -163,7 +165,7 @@ void isaselector::simplify(ThreeAddressCodeBlock &block, SymbolTable& table) {
                 it = codes.erase(it);
                 continue;
             }
-        } else if (code.op == Operator::ADD || code.op == Operator::SUB) {
+        } else if (code.op == Operator::ADD || code.op == Operator::SUB || code.op == Operator::LSHIFT) {
             auto* vreg = static_cast<VirtualRegisterOperand*>(code.destination.get());
             vrMemoryPos[vreg->index] = MM_ACC;
             vreg->index = MM_ACC;
@@ -172,10 +174,12 @@ void isaselector::simplify(ThreeAddressCodeBlock &block, SymbolTable& table) {
             auto* vop2 = static_cast<VirtualRegisterOperand*>(code.secondOperand.get());
             vop1->index = vrMemoryPos[vop1->index];
             vop2->index = vrMemoryPos[vop2->index];
+            lastDestinationVIndex = MM_ACC;
         } else if (code.op == Operator::STDIN) {
             auto* vreg = static_cast<VirtualRegisterOperand*>(code.destination.get());
             vrMemoryPos[vreg->index] = MM_ACC;
             vreg->index = MM_ACC;
+            lastDestinationVIndex = MM_ACC;
         } else if (code.op == Operator::STDOUT) {
             auto* vreg = static_cast<VirtualRegisterOperand*>(code.destination.get());
             MemoryPosition srcIndex = vrMemoryPos[vreg->index];
@@ -186,6 +190,13 @@ void isaselector::simplify(ThreeAddressCodeBlock &block, SymbolTable& table) {
 
             vrMemoryPos[vreg->index] = MM_ACC;
             vreg->index = MM_ACC;
+        } else if (code.op == Operator::JUMP || code.op == Operator::JZERO ||
+                   code.op == Operator::JPLUS || code.op == Operator::JMINUS) {
+            if (lastDestinationVIndex.has_value() && lastDestinationVIndex.value() != MM_ACC) {
+                auto v0 = VirtualRegisterOperand(MM_ACC);
+                auto vi = VirtualRegisterOperand(vrMemoryPos[lastDestinationVIndex.value()]);
+                codes.insert(it, ThreeAddressCode(v0.copy(), ThreeAddressCode::LOAD, vi.copy()));
+            }
         }
 
         ++it;
@@ -261,16 +272,40 @@ void isaselector::match(AssemblyBlock& asmBlock, JumpTable& jtable, ThreeAddress
                 // load vop1
                 // add vop2
                 if (mdest == 0) {
-                    asmBlock.push_back(Assembly::Load(mop1));
-                    asmBlock.push_back(Assembly::Add(mop2));
+                    if (mop1 == 0) {
+                        asmBlock.push_back(Assembly::Add(mop2));
+                    } else if (mop2 == 0) {
+                        asmBlock.push_back(Assembly::Add(mop1));
+                    } else {
+                        asmBlock.push_back(Assembly::Load(mop1));
+                        asmBlock.push_back(Assembly::Add(mop2));
+                    }
                 } else_throw_exception(ISAMatchIncorrectFormat);
                 break;
             case Operator::SUB:
                 // load vop1
                 // sub vop2
                 if (mdest == 0) {
-                    asmBlock.push_back(Assembly::Load(mop1));
-                    asmBlock.push_back(Assembly::Sub(mop2));
+                    if (mop1 == 0) {
+                        asmBlock.push_back(Assembly::Sub(mop2));
+                    } else if (mop2 == 0) {
+                        asmBlock.push_back(Assembly::Sub(mop1));
+                    } else {
+                        asmBlock.push_back(Assembly::Load(mop1));
+                        asmBlock.push_back(Assembly::Sub(mop2));
+                    }
+                } else_throw_exception(ISAMatchIncorrectFormat);
+                break;
+            case Operator::LSHIFT:
+                if (mdest == 0) {
+                    if (mop1 == 0) {
+                        asmBlock.push_back(Assembly::Shift(mop2));
+                    } else if (mop2 == 0) {
+                        asmBlock.push_back(Assembly::Shift(mop1));
+                    } else {
+                        asmBlock.push_back(Assembly::Load(mop1));
+                        asmBlock.push_back(Assembly::Shift(mop2));
+                    }
                 } else_throw_exception(ISAMatchIncorrectFormat);
                 break;
             case Operator::JUMP:
