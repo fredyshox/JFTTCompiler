@@ -28,12 +28,12 @@ LoopRange& LoopRange::operator=(const LoopRange &range) {
 }
 
 ForLoopBlock::ForLoopBlock(std::string iterator, LoopRange range): LoopBlock(), _iteratorName(iterator), _loopRange(range) {
-    Record rIter = Record::iterator(iterator); //TODO offset
+    Record rIter = Record::iterator(_iteratorName); 
     std::stringstream ss;
     ss << "_" << iterator << "_counter";
     _counterName = ss.str();
     Record rCounter = Record::iterator(_counterName);
-    _localSymbolTable.insert(iterator, rIter);
+    _localSymbolTable.insert(_iteratorName, rIter);
     _localSymbolTable.insert(_counterName, rCounter);
 }
 

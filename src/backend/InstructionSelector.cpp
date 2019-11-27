@@ -21,12 +21,40 @@ using Operator = ThreeAddressCode::Operator;
 std::list<ThreeAddressCodeBlock> isaselector::expand(BaseBlock &program, GlobalSymbolTable& symbolTable) {
     // flatten the program into tac blocks
     std::list<ThreeAddressCodeBlock> flatTacs = BaseBlock::flattenBlockList(&program);
+
+    // add all other permanent operands to symbol table and assign memory position.
+    // this will add constants
+    Operand* ccc[3] = {nullptr, nullptr, nullptr};
+    for (ThreeAddressCodeBlock& tacBlock : flatTacs) {
+        for (const ThreeAddressCode& tac : tacBlock.codes()) {
+            ccc[0] = tac.destination.get();
+            ccc[1] = tac.firstOperand.get();
+            ccc[2] = tac.secondOperand.get();
+            int nArgs = ThreeAddressCode::OperatorNArgs[static_cast<int>(tac.op)];
+            for (int i = 0; i < nArgs && i < 3; i++) {
+                if (!ccc[i]->isPermanent()) continue;
+
+                std::string rname = ccc[i]->recordName();
+                if (!symbolTable.contains(rname)) {
+                    symbolTable.insert(rname, Record::integer(rname));
+                }
+
+                if (auto aso = dynamic_cast<ArraySymbolOperand*>(ccc[i])) {
+                    rname = aso->index->recordName();
+                    if (!symbolTable.contains(rname)) {
+                        symbolTable.insert(rname, Record::integer(rname));
+                    }
+                }
+            }
+        }
+    }
+
     // create memory map
     std::unordered_map<std::string, Record>& recordMap = symbolTable.allRecords();
-    std::vector<std::string> keys;
+    std::vector<std::string> keys(recordMap.size());
     auto keySelector = [](auto pair) { return pair.first; };
     std::transform(recordMap.begin(), recordMap.end(), keys.begin(), keySelector);
-    MemoryPosition currentPos = MM_TEMP5 + 1;
+     MemoryPosition currentPos = MM_TEMP5 + 1;
     for (const std::string& key : keys) {
         Record& record = recordMap.at(key);
         record.offset = currentPos;
@@ -37,7 +65,6 @@ std::list<ThreeAddressCodeBlock> isaselector::expand(BaseBlock &program, GlobalS
             symbolTable.insert(m.name, m);
         }
     }
-    // TODO CONSTANTS!!!
 
     return flatTacs;
 }
