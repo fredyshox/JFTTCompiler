@@ -7,21 +7,23 @@
 #include <string>
 #include <exception>
 
+using namespace std;
+
 namespace {
 
 class SymbolTableTest: public ::testing::Test {
 protected:
-    SymbolTable* gt;
+    GlobalSymbolTable* gt;
     SymbolTable* ns1;
     SymbolTable* ns2;
 
     // helpers
 
-    Record genRecord(std::string name) {
+    Record genRecord(string name) {
         return Record::integer(name);
     }
 
-    void insertRecord(SymbolTable* table, std::string str) {
+    void insertRecord(SymbolTable* table, string str) {
         table->insert(str, genRecord(str));
     }
 
@@ -62,7 +64,7 @@ TEST_F(SymbolTableTest, NestedContains) {
 }
 
 TEST_F(SymbolTableTest, NestedSearch) {
-    std::string key = "aaaa";
+    string key = "aaaa";
     insertRecord(ns1, key);
     auto r1 = ns1->search(key);
     auto r2 = ns2->search(key);
@@ -72,7 +74,7 @@ TEST_F(SymbolTableTest, NestedSearch) {
         gt->search(key);
         FAIL();
     } catch (const RecordNotFound &e) {
-    } catch (const std::exception &e) {
+    } catch (const exception &e) {
         FAIL();
     }
 }
@@ -80,6 +82,15 @@ TEST_F(SymbolTableTest, NestedSearch) {
 TEST_F(SymbolTableTest, Insert) {
     insertRecord(gt, "hello");
     ASSERT_TRUE(gt->contains("hello"));
+}
+
+TEST_F(SymbolTableTest, GlobalAllRecords) {
+    vector<string> keys = {"g1", "g2", "g3", "n1", "n2", "n3"};
+    auto allRecords = gt->allRecords();
+    for (auto& key : keys) {
+        cout << "Evaluating: " << key << endl;
+        ASSERT_TRUE(allRecords.find(key) != allRecords.end());
+    }
 }
 
 }

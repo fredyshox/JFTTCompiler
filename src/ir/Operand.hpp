@@ -27,7 +27,7 @@ public:
     std::unique_ptr<Operand> copy() const;
     virtual bool isPermanent() = 0;
     virtual bool hasStaticMemoryPosition();
-    virtual MemoryPosition memoryPosition(SymbolTable& table) noexcept(false);
+    virtual MemoryPosition memoryPosition(GlobalSymbolTable& table) noexcept(false);
     virtual std::string recordName() = 0;
 
     friend class PermanentOperand;
@@ -48,7 +48,7 @@ public:
     ConstantOperand(int value);
     ConstantOperand() = delete;
     bool hasStaticMemoryPosition() override;
-    MemoryPosition memoryPosition(SymbolTable& table) noexcept(false) override;
+    MemoryPosition memoryPosition(GlobalSymbolTable& table) noexcept(false) override;
     std::string recordName() override;
 protected:
     ConstantOperand* copyImpl() const override;
@@ -61,7 +61,7 @@ public:
     SymbolOperand(std::string symbol);
     SymbolOperand() = delete;
     bool hasStaticMemoryPosition() override;
-    MemoryPosition memoryPosition(SymbolTable& table) noexcept(false) override;
+    MemoryPosition memoryPosition(GlobalSymbolTable& table) noexcept(false) override;
     std::string recordName() override;
 protected:
     SymbolOperand* copyImpl() const override;
@@ -74,7 +74,7 @@ public:
     ArraySymbolOperand(std::unique_ptr<Operand> indexPtr, std::string symbol);
     ArraySymbolOperand() = delete;
     bool hasStaticMemoryPosition() override;
-    MemoryPosition memoryPosition(SymbolTable& table) noexcept(false) override;
+    MemoryPosition memoryPosition(GlobalSymbolTable& table) noexcept(false) override;
 protected:
     ArraySymbolOperand* copyImpl() const override;
 };
@@ -87,7 +87,7 @@ public:
     VirtualRegisterOperand() = delete;
     bool isPermanent() override;
     bool hasStaticMemoryPosition() override;
-    MemoryPosition memoryPosition(SymbolTable& table) noexcept(false) override;
+    MemoryPosition memoryPosition(GlobalSymbolTable& table) noexcept(false) override;
     std::string recordName() override;
 protected:
     VirtualRegisterOperand* copyImpl() const override;

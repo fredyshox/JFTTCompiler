@@ -20,10 +20,10 @@ public:
     Assembly& operator=(const Assembly &cond) = default;
     ~Assembly() = default;
 
-    std::string mnemonic();
-    std::optional<uint64_t> argument();
+    std::string mnemonic() const;
+    std::optional<uint64_t> argument() const;
     void setArgument(std::optional<uint64_t> argument);
-    std::string toString();
+    std::string toString() const;
     static Assembly Put();
     static Assembly Get();
     static Assembly Load(uint64_t offset);

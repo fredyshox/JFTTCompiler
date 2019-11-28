@@ -17,19 +17,32 @@ private:
     std::unique_ptr<Operand> _firstOperand;
     std::unique_ptr<Operand> _secondOperand;
 public:
-    MultiplicationBlock(Operand& dest, Operand& firstOperand, Operand& secondOperand);
+    MultiplicationBlock(Operand& dest, Operand& firstOperand, Operand& secondOperand, SymbolTable* parentTable);
     /**
-     * Block if tacs places before multiplication loop body
-     * @return
+     * Block of tacs places before multiplication loop body
+     * @return tacBlock
      */
     ThreeAddressCodeBlock init();
+    /**
+     * Block that adjust values for negativity
+     * @return tacBlock
+     */
     ThreeAddressCodeBlock negativeInit();
+    /**
+     * Multiplication loop body
+     * @return tacBlock
+     */
     ThreeAddressCodeBlock body();
+    /**
+     * Post multiplication body, preparation for next iteration
+     * @return tacBlock
+     */
     ThreeAddressCodeBlock postBody();
+    std::list<ThreeAddressCodeBlock> flatten() override;
+    // MARK: Labels
     LabelIdentifier negativeInitLabel();
     LabelIdentifier bodyLabel();
     LabelIdentifier postBodyLabel();
-    std::list<ThreeAddressCodeBlock> flatten() override;
     // MARK: Temporary variables
     static std::string multiplierRecordName();
     static std::string multiplicandRecordName();

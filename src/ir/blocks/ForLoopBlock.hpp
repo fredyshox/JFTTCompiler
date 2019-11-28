@@ -40,7 +40,7 @@ private:
     std::string _counterName;
     LoopRange _loopRange;
 public:
-    ForLoopBlock(std::string iterator, LoopRange range);
+    ForLoopBlock(std::string iterator, LoopRange range, SymbolTable* parentTable);
     ForLoopBlock() = delete;
     ~ForLoopBlock() override = default;
     ThreeAddressCodeBlock init() override;

@@ -17,7 +17,6 @@
 class ThreeAddressCodeBlock: public BaseBlock {
 private:
     std::list<ThreeAddressCode> _codes;
-    static ThreeAddressCodeBlock binaryOperation(Operand& dest, Operand& op1, Operand& op2, ThreeAddressCode::Operator op, uint64_t initialVIndex);
 public:
     explicit ThreeAddressCodeBlock(const std::list<ThreeAddressCode>& codes = {});
 
@@ -27,6 +26,7 @@ public:
     void append(ThreeAddressCode& code);
     std::list<ThreeAddressCodeBlock> flatten() override;
     // factory
+    static ThreeAddressCodeBlock binaryOperation(Operand& dest, Operand& op1, Operand& op2, ThreeAddressCode::Operator op, uint64_t initialVIndex);
     static ThreeAddressCodeBlock addition(Operand& dest, Operand& op1, Operand& op2, uint64_t initialVIndex = 1);
     static ThreeAddressCodeBlock subtraction(Operand& dest, Operand& op1, Operand& op2, uint64_t initialVIndex = 1);
     static ThreeAddressCodeBlock multiplication(Operand& dest, Operand& op1, Operand& op2, uint64_t initialVIndex = 1);

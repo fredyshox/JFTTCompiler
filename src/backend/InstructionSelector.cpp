@@ -36,13 +36,17 @@ std::list<ThreeAddressCodeBlock> isaselector::expand(BaseBlock &program, GlobalS
 
                 std::string rname = ccc[i]->recordName();
                 if (!symbolTable.contains(rname)) {
-                    symbolTable.insert(rname, Record::integer(rname));
+                    Record record = Record::integer(rname);
+                    record.isConstant = true;
+                    symbolTable.insert(rname, record);
                 }
 
                 if (auto aso = dynamic_cast<ArraySymbolOperand*>(ccc[i])) {
                     rname = aso->index->recordName();
                     if (!symbolTable.contains(rname)) {
-                        symbolTable.insert(rname, Record::integer(rname));
+                        Record record = Record::integer(rname);
+                        record.isConstant = true;
+                        symbolTable.insert(rname, record);
                     }
                 }
             }
@@ -69,7 +73,7 @@ std::list<ThreeAddressCodeBlock> isaselector::expand(BaseBlock &program, GlobalS
     return flatTacs;
 }
 
-void isaselector::simplify(ThreeAddressCodeBlock &block, SymbolTable& table) {
+void isaselector::simplify(ThreeAddressCodeBlock &block, GlobalSymbolTable& table) {
     std::unordered_map<uint64_t, MemoryPosition> vrMemoryPos;
     std::list<ThreeAddressCode>& codes = block.codes();
     MemoryPosition currentTemp = MM_TEMP1;
@@ -115,13 +119,14 @@ void isaselector::simplify(ThreeAddressCodeBlock &block, SymbolTable& table) {
                 // a/b[1]/b[a] dest
                 auto* vro = static_cast<VirtualRegisterOperand*>(code.firstOperand.get());
                 auto v0 = VirtualRegisterOperand(MM_ACC);
+                lastDestinationVIndex = std::nullopt;
 
                 vro->index = vrMemoryPos[vro->index];
                 if (code.destination->hasStaticMemoryPosition()) {
                     // a/a[1] <- vreg
                     MemoryPosition pos = code.destination->memoryPosition(table);
                     auto vdest = VirtualRegisterOperand(pos);
-                    if (vro->index != 0) {
+                    if (vro->index != MM_ACC) {
                         // v0 <- vro
                         // vdest <- v0
                         codes.insert(it, ThreeAddressCode(v0.copy(), Operator::LOAD, vro->copy()));
@@ -168,18 +173,19 @@ void isaselector::simplify(ThreeAddressCodeBlock &block, SymbolTable& table) {
         } else if (code.op == Operator::ADD || code.op == Operator::SUB || code.op == Operator::LSHIFT) {
             auto* vreg = static_cast<VirtualRegisterOperand*>(code.destination.get());
             vrMemoryPos[vreg->index] = MM_ACC;
+            lastDestinationVIndex = vreg->index;
             vreg->index = MM_ACC;
             // wh about other
             auto* vop1 = static_cast<VirtualRegisterOperand*>(code.firstOperand.get());
             auto* vop2 = static_cast<VirtualRegisterOperand*>(code.secondOperand.get());
+            lastDestinationVIndex = vreg->index;
             vop1->index = vrMemoryPos[vop1->index];
             vop2->index = vrMemoryPos[vop2->index];
-            lastDestinationVIndex = MM_ACC;
         } else if (code.op == Operator::STDIN) {
             auto* vreg = static_cast<VirtualRegisterOperand*>(code.destination.get());
             vrMemoryPos[vreg->index] = MM_ACC;
+            lastDestinationVIndex = vreg->index;
             vreg->index = MM_ACC;
-            lastDestinationVIndex = MM_ACC;
         } else if (code.op == Operator::STDOUT) {
             auto* vreg = static_cast<VirtualRegisterOperand*>(code.destination.get());
             MemoryPosition srcIndex = vrMemoryPos[vreg->index];
@@ -190,9 +196,8 @@ void isaselector::simplify(ThreeAddressCodeBlock &block, SymbolTable& table) {
 
             vrMemoryPos[vreg->index] = MM_ACC;
             vreg->index = MM_ACC;
-        } else if (code.op == Operator::JUMP || code.op == Operator::JZERO ||
-                   code.op == Operator::JPLUS || code.op == Operator::JMINUS) {
-            if (lastDestinationVIndex.has_value() && lastDestinationVIndex.value() != MM_ACC) {
+        } else if (code.op == Operator::JZERO || code.op == Operator::JPLUS || code.op == Operator::JMINUS) {
+            if (lastDestinationVIndex.has_value() && vrMemoryPos[lastDestinationVIndex.value()] != MM_ACC) {
                 auto v0 = VirtualRegisterOperand(MM_ACC);
                 auto vi = VirtualRegisterOperand(vrMemoryPos[lastDestinationVIndex.value()]);
                 codes.insert(it, ThreeAddressCode(v0.copy(), ThreeAddressCode::LOAD, vi.copy()));
@@ -216,7 +221,7 @@ const char* isaselector::ISAMatchFailed::what() const throw() {
         throw exception; \
     }
 
-void isaselector::match(AssemblyBlock& asmBlock, JumpTable& jtable, ThreeAddressCodeBlock &block, SymbolTable& table) noexcept(false) {
+void isaselector::match(AssemblyBlock& asmBlock, JumpTable& jtable, ThreeAddressCodeBlock &block, GlobalSymbolTable& table) noexcept(false) {
     MemoryPosition mdest;
     MemoryPosition mop1;
     MemoryPosition mop2;
@@ -382,45 +387,34 @@ void isaselector::loadValueToP0(AssemblyBlock& asmBlock, int64_t value) {
         return;
     }
 
-    Assembly inc = value > 0 ? Assembly::Inc() : Assembly::Dec();
+    if (value > 0) {
+        asmBlock.push_back(Assembly::Inc());
+        asmBlock.push_back(Assembly::Store(MM_TEMP4));
+        asmBlock.push_back(Assembly::Store(MM_TEMP5));
+        asmBlock.push_back(Assembly::Dec());
+    } else {
+        asmBlock.push_back(Assembly::Inc());
+        asmBlock.push_back(Assembly::Store(MM_TEMP5));
+        asmBlock.push_back(Assembly::Dec());
+        asmBlock.push_back(Assembly::Dec());
+        asmBlock.push_back(Assembly::Store(MM_TEMP4));
+        asmBlock.push_back(Assembly::Inc());
+    }
+
     value = abs(value);
-
-    if (value % 2 == 0) {
-        asmBlock.push_back(inc);
-        value = value - 1;
-    }
-
     while (value != 0) {
-        if (value % 2 != 0) {
-            asmBlock.push_back(inc);
-            value = value - 1;
-        } else {
-            asmBlock.push_back(Assembly::Add(0));
-            value = value / 2;
+        if (value & 1) {
+            asmBlock.push_back(Assembly::Add(MM_TEMP4));
+        }
+
+        value = value >> 1;
+
+        if (value != 0) {
+            asmBlock.push_back(Assembly::Store(MM_TEMP3));
+            asmBlock.push_back(Assembly::Load(MM_TEMP4));
+            asmBlock.push_back(Assembly::Shift(MM_TEMP5));
+            asmBlock.push_back(Assembly::Store(MM_TEMP4));
+            asmBlock.push_back(Assembly::Load(MM_TEMP3));
         }
     }
-}
-
-uint64_t numberGenerationCost(int64_t n) {
-    n = abs(n);
-    uint64_t cost = 0;
-
-    if (n % 2 == 0) {
-        n = n - 1;
-        cost += 1;
-    }
-
-    while (n != 0) {
-        if (n % 2 != 0) {
-            // INC
-            n = n - 1;
-            cost += 1;
-        } else {
-            // add p0
-            n = n / 2;
-            cost += 10;
-        }
-    }
-
-    return cost;
 }

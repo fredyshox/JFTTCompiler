@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.7)
 # sources
 set(backend_SOURCES
     Assembly.cpp
+    AssemblyPrinter.cpp
     InstructionSelector.cpp)
 
 set(GLOB_RECURSE backend_HEADERS ./*.hpp)

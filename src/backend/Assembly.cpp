@@ -4,11 +4,11 @@
 
 #include "Assembly.hpp"
 
-std::string Assembly::mnemonic() {
+std::string Assembly::mnemonic() const {
     return _mnemonic;
 }
 
-std::optional<uint64_t> Assembly::argument() {
+std::optional<uint64_t> Assembly::argument() const {
     return _argument;
 }
 
@@ -16,7 +16,7 @@ void Assembly::setArgument(std::optional<uint64_t> argument) {
     _argument = argument;
 }
 
-std::string Assembly::toString() {
+std::string Assembly::toString() const {
     std::stringstream ss;
     ss << _mnemonic << " ";
     if (_argument.has_value()) {

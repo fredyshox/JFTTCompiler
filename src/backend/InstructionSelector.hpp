@@ -36,13 +36,13 @@ namespace isaselector {
      * Simplifies three address code block.
      * @param block block to simplify
      */
-    void simplify(ThreeAddressCodeBlock& block, SymbolTable& table);
+    void simplify(ThreeAddressCodeBlock& block, GlobalSymbolTable& table);
 
     /**
      * Matches three address code to target isa instructions using abstract jump locations.
      * @param block block to match instructions to
      */
-    void match(AssemblyBlock& asmBlock, JumpTable& jtable, ThreeAddressCodeBlock& block, SymbolTable& table) noexcept(false);
+    void match(AssemblyBlock& asmBlock, JumpTable& jtable, ThreeAddressCodeBlock& block, GlobalSymbolTable& table) noexcept(false);
 
     /**
      * Adds memory map initialization block

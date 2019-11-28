@@ -27,7 +27,10 @@ LoopRange& LoopRange::operator=(const LoopRange &range) {
     return *this;
 }
 
-ForLoopBlock::ForLoopBlock(std::string iterator, LoopRange range): LoopBlock(), _iteratorName(iterator), _loopRange(range) {
+ForLoopBlock::ForLoopBlock(std::string iterator, LoopRange range, SymbolTable* parentTable): 
+    LoopBlock(parentTable), 
+    _iteratorName(iterator), 
+    _loopRange(range) {
     Record rIter = Record::iterator(_iteratorName); 
     std::stringstream ss;
     ss << "_" << iterator << "_counter";
@@ -42,18 +45,18 @@ ThreeAddressCodeBlock ForLoopBlock::init() {
     SymbolOperand counter(_counterName);
     Operand& initial = *_loopRange.initial;
     Operand& bound = *_loopRange.bound;
-    ConstantOperand step(1);
+    ConstantOperand c1(1);
 
     ThreeAddressCodeBlock block;
     ThreeAddressCodeBlock temp = ThreeAddressCodeBlock::copy(iterator, initial);
     block.merge(temp);
     if (_loopRange.step > 0) {
-        temp = ThreeAddressCodeBlock::addition(counter, bound, step);
+        temp = ThreeAddressCodeBlock::addition(counter, bound, c1);
         block.merge(temp);
         temp = ThreeAddressCodeBlock::subtraction(counter, counter, initial);
         block.merge(temp);
     } else {
-        temp = ThreeAddressCodeBlock::addition(counter, initial, step);
+        temp = ThreeAddressCodeBlock::addition(counter, initial, c1);
         block.merge(temp);
         temp = ThreeAddressCodeBlock::subtraction(counter, counter, bound);
         block.merge(temp);
@@ -66,7 +69,7 @@ ThreeAddressCodeBlock ForLoopBlock::pre() {
     SymbolOperand counter(_counterName);
     ConstantOperand zero(0);
 
-    Condition cond(counter, zero, Condition::Operator::NEQ);
+    Condition cond(counter, zero, Condition::Operator::GT);
     ThreeAddressCodeBlock block = cond.toBlock(endLabel());
     block.setId(loopLabel());
     return block;
@@ -75,15 +78,15 @@ ThreeAddressCodeBlock ForLoopBlock::pre() {
 ThreeAddressCodeBlock ForLoopBlock::post() {
     SymbolOperand iterator(_iteratorName);
     SymbolOperand counter(_counterName);
-    ConstantOperand step(_loopRange.step);
+    ConstantOperand c1(1);
 
     ThreeAddressCodeBlock iteratorUpdate;
     if (_loopRange.step > 0) {
-        iteratorUpdate = ThreeAddressCodeBlock::addition(iterator, iterator, step);
+        iteratorUpdate = ThreeAddressCodeBlock::addition(iterator, iterator, c1);
     } else {
-        iteratorUpdate = ThreeAddressCodeBlock::subtraction(iterator, iterator, step);
+        iteratorUpdate = ThreeAddressCodeBlock::subtraction(iterator, iterator, c1);
     }
-    ThreeAddressCodeBlock counterUpdate = ThreeAddressCodeBlock::subtraction(counter, counter, step);
+    ThreeAddressCodeBlock counterUpdate = ThreeAddressCodeBlock::subtraction(counter, counter, c1);
     ThreeAddressCode loopJump = ThreeAddressCodeBlock::jump(loopLabel(), JUMP_ALWAYS);
 
     ThreeAddressCodeBlock block;

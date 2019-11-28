@@ -4,8 +4,8 @@
 
 #include "MultiplicationBlock.hpp"
 
-MultiplicationBlock::MultiplicationBlock(Operand &dest, Operand &firstOperand, Operand &secondOperand):
-    ControlFlowBlock(NestedSymbolTable()),
+MultiplicationBlock::MultiplicationBlock(Operand &dest, Operand &firstOperand, Operand &secondOperand, SymbolTable* parentTable):
+    ControlFlowBlock(NestedSymbolTable(parentTable)),
     _destination(dest.copy()),
     _firstOperand(firstOperand.copy()),
     _secondOperand(secondOperand.copy()) {

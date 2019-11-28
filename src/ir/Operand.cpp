@@ -21,7 +21,7 @@ bool Operand::hasStaticMemoryPosition() {
     return false;
 }
 
-MemoryPosition Operand::memoryPosition(SymbolTable &table) {
+MemoryPosition Operand::memoryPosition(GlobalSymbolTable &table) {
     throw NotInMemory("no name");
 }
 
@@ -39,10 +39,10 @@ bool ConstantOperand::hasStaticMemoryPosition() {
     return true;
 }
 
-MemoryPosition ConstantOperand::memoryPosition(SymbolTable &table) {
+MemoryPosition ConstantOperand::memoryPosition(GlobalSymbolTable &table) {
     std::string name = recordName();
-    if (table.contains(name)) {
-        return table.search(name).memoryPosition();
+    if (table.containsAllRecords(name)) {
+        return table.searchAllRecords(name).memoryPosition();
     } else {
         throw NotInMemory(name);
     }
@@ -62,9 +62,9 @@ bool SymbolOperand::hasStaticMemoryPosition() {
     return true;
 }
 
-MemoryPosition SymbolOperand::memoryPosition(SymbolTable &table) {
-    if (table.contains(symbol)) {
-        return table.search(symbol).memoryPosition();
+MemoryPosition SymbolOperand::memoryPosition(GlobalSymbolTable &table) {
+    if (table.containsAllRecords(symbol)) {
+        return table.searchAllRecords(symbol).memoryPosition();
     } else {
         throw NotInMemory(symbol);
     }
@@ -84,14 +84,14 @@ bool ArraySymbolOperand::hasStaticMemoryPosition() {
     return dynamic_cast<ConstantOperand*>(this->index.get()) != nullptr;
 }
 
-MemoryPosition ArraySymbolOperand::memoryPosition(SymbolTable &table) {
+MemoryPosition ArraySymbolOperand::memoryPosition(GlobalSymbolTable &table) {
     if (!hasStaticMemoryPosition()) {
         throw NotInMemory(symbol);
     }
 
     ConstantOperand cop = *dynamic_cast<ConstantOperand*>(this->index.get());
-    if (table.contains(symbol)) {
-        MemoryPosition base = table.search(symbol).memoryPosition();
+    if (table.containsAllRecords(symbol)) {
+        MemoryPosition base = table.searchAllRecords(symbol).memoryPosition();
         return base + cop.value;
     } else {
         throw NotInMemory(symbol);
@@ -114,7 +114,7 @@ bool VirtualRegisterOperand::hasStaticMemoryPosition() {
     return true;
 }
 
-MemoryPosition VirtualRegisterOperand::memoryPosition(SymbolTable &table) {
+MemoryPosition VirtualRegisterOperand::memoryPosition(GlobalSymbolTable &table) {
     return index;
 }
 std::string VirtualRegisterOperand::recordName() {

@@ -68,8 +68,7 @@ ForLoopBlock* irconverter::convert(ASTForLoop forLoop, SymbolTable* parentTable)
     auto init = convert(forLoop.iteratorInitial);
     auto bound = convert(forLoop.iteratorBound);
     LoopRange range(init, bound, step);
-    ForLoopBlock* block = new ForLoopBlock(forLoop.iterator, range);
-    block->localSymbolTable().setParent(parentTable);
+    ForLoopBlock* block = new ForLoopBlock(forLoop.iterator, range, parentTable);
     block->setBody(convertList(forLoop.start, &block->localSymbolTable()));
 
     return block;
@@ -77,7 +76,8 @@ ForLoopBlock* irconverter::convert(ASTForLoop forLoop, SymbolTable* parentTable)
 
 WhileLoopBlock* irconverter::convert(ASTWhileLoop whileLoop, SymbolTable* parentTable) {
     Condition cond = convert(whileLoop.condition);
-    WhileLoopBlock* block = (whileLoop.type == kLoopWhile) ? new WhileLoopBlock(cond) : new DoWhileLoopBlock(cond);
+    WhileLoopBlock* block =
+            (whileLoop.type == kLoopWhile) ? new WhileLoopBlock(cond, parentTable) : new DoWhileLoopBlock(cond, parentTable);
     block->localSymbolTable().setParent(parentTable);
     block->setBody(convertList(whileLoop.start, &block->localSymbolTable()));
 
@@ -108,13 +108,15 @@ ThreeAddressCodeBlock* irconverter::convert(ASTAssignment assignment) {
         ASTExpression expr = assignment.expression;
         auto op1 = convert(expr.operand1);
         auto op2 = convert(expr.operand2);
+        auto tacOperator = convert(expr.op);
+
         auto v1 = std::make_unique<VirtualRegisterOperand>(1);
         auto v2 = std::make_unique<VirtualRegisterOperand>(2);
         auto v3 = std::make_unique<VirtualRegisterOperand>(3);
         std::list<ThreeAddressCode> instructionList {
             ThreeAddressCode(v1->copy(), ThreeAddressCode::Operator::LOAD, std::move(op1)),
             ThreeAddressCode(v2->copy(), ThreeAddressCode::Operator::LOAD, std::move(op2)),
-            ThreeAddressCode(v3->copy(), convert(expr.op), v1->copy(), v2->copy()),
+            ThreeAddressCode(v3->copy(), tacOperator, v1->copy(), v2->copy()),
             ThreeAddressCode(std::move(dest), ThreeAddressCode::Operator::LOAD, v3->copy())
         };
         return new ThreeAddressCodeBlock(instructionList);

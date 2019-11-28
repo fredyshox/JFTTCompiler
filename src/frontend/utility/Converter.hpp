@@ -30,8 +30,8 @@ namespace irconverter {
     ForLoopBlock* convert(ASTForLoop forLoop, SymbolTable* parentTable);
     WhileLoopBlock* convert(ASTWhileLoop whileLoop, SymbolTable* parentTable);
     ConditionBlock* convert(ASTBranch branch, SymbolTable* parentTable);
-    ThreeAddressCodeBlock* convert(ASTIO io);
     ThreeAddressCodeBlock* convert(ASTAssignment assignment);
+    ThreeAddressCodeBlock* convert(ASTIO io);
     Condition convert(ASTCondition astCondition);
     std::unique_ptr<Operand> convert(ASTOperand astOperand);
     std::unique_ptr<Operand> convert(ASTSymbol symbol);

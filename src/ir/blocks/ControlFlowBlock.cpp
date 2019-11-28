@@ -30,7 +30,7 @@ void LoopBlock::adjustBodyLabels() {
     current->setEndLabel(postBodyLabel());
 }
 
-LoopBlock::LoopBlock(): ControlFlowBlock(NestedSymbolTable()) {
+LoopBlock::LoopBlock(SymbolTable* parentTable): ControlFlowBlock(NestedSymbolTable(parentTable)) {
     this->_loopLabel = genLabel();
     this->_bodyLabel = genLabel();
     this->_postBodyLabel = genLabel();

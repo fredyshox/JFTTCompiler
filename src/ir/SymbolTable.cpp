@@ -30,6 +30,14 @@ Record& GlobalSymbolTable::search(const std::string key) {
     }
 }
 
+Record& GlobalSymbolTable::searchAllRecords(std::string key) {
+    try {
+        return records.at(key);
+    } catch (const std::out_of_range &e) {
+        throw RecordNotFound(key);
+    }
+}
+
 void GlobalSymbolTable::insert(const std::string key, Record value) {
     dict.insert( {key, value} );
     notifyParent(value);
@@ -37,6 +45,10 @@ void GlobalSymbolTable::insert(const std::string key, Record value) {
 
 bool GlobalSymbolTable::contains(std::string key) {
     return dict.find(key) != dict.end();
+}
+
+bool GlobalSymbolTable::containsAllRecords(std::string key) {
+    return records.find(key) != records.end();
 }
 
 GlobalSymbolTable* GlobalSymbolTable::copy() const {

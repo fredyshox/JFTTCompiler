@@ -29,7 +29,7 @@ TEST(TACFlatten, ConditionBlockPass) {
 
     list<ThreeAddressCodeBlock> flat = branch.flatten();
     ASSERT_EQ(flat.size(), 3);
-    vector<uint64_t> sizes = {(4 + 2), 4, 4};
+    vector<uint64_t> sizes = {(3 + 2), 4, 4};
     auto it = flat.begin();
     for (int i = 0; i < 3; i++) {
         EXPECT_EQ((*it).size(), sizes[i]);
@@ -44,7 +44,7 @@ TEST(TACFlatten, ConditionBlockPassFail) {
 
     list<ThreeAddressCodeBlock> flat = branch.flatten();
     ASSERT_EQ(flat.size(), 6);
-    vector<uint64_t> sizes = {(4 + 2), 4, 4, 1, 4, 4};
+    vector<uint64_t> sizes = {(3 + 2), 4, 4, 1, 4, 4};
     auto it = flat.begin();
     for (int i = 0; i < 5; i++) {
         EXPECT_EQ((*it).size(), sizes[i]);
@@ -54,7 +54,7 @@ TEST(TACFlatten, ConditionBlockPassFail) {
 
 TEST(TACFlatten, ForLoopBlock) {
     LoopRange lr = LoopRange(c10, a, 1);
-    ForLoopBlock forLoop("i", lr);
+    ForLoopBlock forLoop("i", lr, nullptr);
     // body
     SAMPLE_BODY(add, sub);
     forLoop.setBody(&add);
@@ -70,13 +70,13 @@ TEST(TACFlatten, ForLoopBlock) {
 }
 
 TEST(TACFlatten, WhileLoopBlock) {
-    WhileLoopBlock whileLoop(cond);
+    WhileLoopBlock whileLoop(cond, nullptr);
     SAMPLE_BODY(add, sub);
     whileLoop.setBody(&add);
 
     list<ThreeAddressCodeBlock> flat = whileLoop.flatten();
     ASSERT_EQ(flat.size(), 4);
-    vector<uint64_t> sizes = {6, 4, 4, 1};
+    vector<uint64_t> sizes = {5, 4, 4, 1};
     auto it = flat.begin();
     for (int i = 0; i < 4; i++) {
         EXPECT_EQ((*it).size(), sizes[i]);
@@ -85,13 +85,13 @@ TEST(TACFlatten, WhileLoopBlock) {
 }
 
 TEST(TACFlatten, DoWhileLoopBlock) {
-    DoWhileLoopBlock whileLoop(cond);
+    DoWhileLoopBlock whileLoop(cond, nullptr);
     SAMPLE_BODY(add, sub);
     whileLoop.setBody(&add);
 
     list<ThreeAddressCodeBlock> flat = whileLoop.flatten();
     ASSERT_EQ(flat.size(), 5);
-    vector<uint64_t> sizes = {1, 6, 4, 4, 1};
+    vector<uint64_t> sizes = {1, 5, 4, 4, 1};
     auto it = flat.begin();
     for (int i = 0; i < 5; i++) {
         EXPECT_EQ((*it).size(), sizes[i]);
@@ -111,9 +111,9 @@ TEST(TACFlatten, NestedBlocks) {
     //   sub3
 
     LoopRange lr = LoopRange(c10, a, 1);
-    ForLoopBlock forLoop("i", lr);
+    ForLoopBlock forLoop("i", lr, nullptr);
 
-    WhileLoopBlock whileLoop(cond);
+    WhileLoopBlock whileLoop(cond, nullptr);
     SAMPLE_BODY(add1, sub1);
     whileLoop.setBody(&add1);
 
@@ -130,8 +130,8 @@ TEST(TACFlatten, NestedBlocks) {
     ASSERT_EQ(flat.size(), expectedSize);
     vector<uint64_t> sizes = {
             /* forLoop */ (4 + 4 + 2), 5,
-            /* whileLoop */ 6, 4, 4, 1,
-            /* if */ (4 + 2), 4, 4,
+            /* whileLoop */ 5, 4, 4, 1,
+            /* if */ (3 + 2), 4, 4,
             /* rest */ 4, 4,
             /* forLoopPost */ 9
     };
@@ -163,9 +163,9 @@ TEST(TACFlatten, StartEndLabels) {
     //   sub7
 
     LoopRange lr = LoopRange(c10, a, 1);
-    ForLoopBlock forLoop("i", lr);
+    ForLoopBlock forLoop("i", lr, nullptr);
 
-    WhileLoopBlock whileLoop(cond);
+    WhileLoopBlock whileLoop(cond, nullptr);
     SAMPLE_BODY(add1, sub1);
     whileLoop.setBody(&add1);
 
@@ -179,7 +179,7 @@ TEST(TACFlatten, StartEndLabels) {
     branch1.setNext(&branch2);
 
     SAMPLE_BODY(add6, sub6);
-    DoWhileLoopBlock dwhile(cond);
+    DoWhileLoopBlock dwhile(cond, nullptr);
     dwhile.setBody(&add6);
     branch2.setNext(&dwhile);
 
@@ -230,9 +230,9 @@ TEST(TACFlatten, StartEndLabels2) {
     //   sub7
 
     LoopRange lr = LoopRange(c10, a, 1);
-    ForLoopBlock forLoop("i", lr);
+    ForLoopBlock forLoop("i", lr, nullptr);
 
-    WhileLoopBlock whileLoop(cond);
+    WhileLoopBlock whileLoop(cond, nullptr);
     SAMPLE_BODY(add1, sub1);
     whileLoop.setBody(&add1);
 
@@ -250,7 +250,7 @@ TEST(TACFlatten, StartEndLabels2) {
     branch1.setNext(&branch2);
 
     SAMPLE_BODY(add6, sub6);
-    DoWhileLoopBlock dwhile(cond);
+    DoWhileLoopBlock dwhile(cond, nullptr);
     dwhile.setBody(&add6);
     branch2.setNext(&dwhile);
 

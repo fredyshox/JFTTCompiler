@@ -4,7 +4,9 @@
 
 #include "WhileLoopBlock.hpp"
 
-WhileLoopBlock::WhileLoopBlock(Condition condition): LoopBlock(), _condition(condition) {}
+WhileLoopBlock::WhileLoopBlock(Condition condition, SymbolTable* parentTable): 
+    LoopBlock(parentTable), 
+    _condition(condition) {}
 
 ThreeAddressCodeBlock WhileLoopBlock::init() {
     return ThreeAddressCodeBlock();
@@ -30,7 +32,8 @@ void WhileLoopBlock::onIdChange(LabelIdentifier newId) {
     setLoopLabel(newId);
 }
 
-DoWhileLoopBlock::DoWhileLoopBlock(Condition condition): WhileLoopBlock(condition) {}
+DoWhileLoopBlock::DoWhileLoopBlock(Condition condition, SymbolTable* parentTable): 
+    WhileLoopBlock(condition, parentTable) {}
 
 ThreeAddressCodeBlock DoWhileLoopBlock::init() {
     return ThreeAddressCodeBlock({

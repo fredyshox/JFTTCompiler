@@ -191,6 +191,54 @@ TEST(ISAMatch, MemoryMapOffsets) {
     }
 }
 
+void testNumberGenerator(int64_t expected, AssemblyBlock& asmBlock) {
+    int64_t mem[10];
+    memset(mem, 0, 10);
+    for (Assembly& a : asmBlock) {
+        if (a.mnemonic() == "ADD") {
+            mem[0] = mem[0] + mem[a.argument().value()];
+        } else if (a.mnemonic() == "SUB") {
+            mem[0] = mem[0] - mem[a.argument().value()];
+        } else if (a.mnemonic() == "INC") {
+            mem[0] += 1;
+        } else if (a.mnemonic() == "DEC") {
+            mem[0] -= 1;
+        } else if (a.mnemonic() == "SHIFT") {
+            mem[0] <<= mem[a.argument().value()];
+        } else if (a.mnemonic() == "LOAD") {
+            mem[0] = mem[a.argument().value()];
+        } else if (a.mnemonic() == "STORE") {
+            mem[a.argument().value()] = mem[0];
+        }
+    }
+
+    ASSERT_EQ(expected, mem[0]);
+}
+
+TEST(ISAMatch, NumberGenerator1) {
+    AssemblyBlock block;
+    isaselector::loadValueToP0(block, 10);
+    testNumberGenerator(10, block);
+}
+
+TEST(ISAMatch, NumberGenerator2) {
+    AssemblyBlock block;
+    isaselector::loadValueToP0(block, 31);
+    testNumberGenerator(31, block);
+}
+
+TEST(ISAMatch, NumberGenerator3) {
+    AssemblyBlock block;
+    isaselector::loadValueToP0(block, -71);
+    testNumberGenerator(-71, block);
+}
+
+TEST(ISAMatch, NumberGenerator4) {
+    AssemblyBlock block;
+    isaselector::loadValueToP0(block, -28);
+    testNumberGenerator(-28, block);
+}
+
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

@@ -32,6 +32,7 @@ Condition& Condition::operator=(const Condition &cond) {
 ThreeAddressCodeBlock Condition::toBlock(LabelIdentifier failId) {
     auto dest = VirtualRegisterOperand(1);
     auto sub = ThreeAddressCodeBlock::subtraction(dest, *firstOperand, *secondOperand);
+    sub.codes().pop_back();
 
     auto jumpsLambda = [failId](Operator op) -> std::list<ThreeAddressCode> {
         switch (op) {

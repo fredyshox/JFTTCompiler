@@ -20,6 +20,10 @@ struct GenericThreeAddressCode {
     };
 
     static constexpr int OperatorNArgs[] = {2, 2, 3, 3, 3, 3, 3, 1, 1, 0, 0, 0, 0};
+    static constexpr const char* const OperatorToString[] = {
+            "LOAD", "LOAD_IND", "ADD", "SUB", "MUL", "DIV", "MOD",
+            "STDIN", "STDOUT", "JUMP", "JPLUS", "JMINUS", "JZERO", "LSHIFT"
+    };
 
     // MARK: Fields
     std::unique_ptr<T> destination;
@@ -68,6 +72,26 @@ struct GenericThreeAddressCode {
     }
     GenericThreeAddressCode() = delete;
     ~GenericThreeAddressCode() = default;
+
+    // MARK: Utility
+    std::string toString() {
+        std::stringstream ss;
+        if (destination) {
+            ss << destination->recordName() << " ";
+        }
+        ss << OperatorToString[static_cast<int>(op)] << " ";
+        if (firstOperand) {
+            ss << firstOperand->recordName() << " ";
+        }
+        if (secondOperand) {
+            ss << secondOperand->recordName() << " ";
+        }
+        if (label.has_value()) {
+            ss << "l" << label.value() << " ";
+        }
+
+        return ss.str();
+    }
 };
 
 using ThreeAddressCode = GenericThreeAddressCode<Operand>;

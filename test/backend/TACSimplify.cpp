@@ -9,7 +9,7 @@
 
 class TACSimplify: public ::testing::Test {
 protected:
-    SymbolTable* table;
+    GlobalSymbolTable* table;
     ConstantOperand* c10;
     ConstantOperand* c72;
 
@@ -218,6 +218,75 @@ TEST_F(TACSimplify, IOWrite) {
 
         ++i;
     }
+}
+
+TEST_F(TACSimplify, AddBeforeJumpCond) {
+    SymbolOperand a("a");
+    SymbolOperand c("c");
+    VirtualRegisterOperand v1(1);
+    ThreeAddressCodeBlock block = ThreeAddressCodeBlock::addition(v1, a, c);
+    block.codes().pop_back();
+    ThreeAddressCode jump = ThreeAddressCodeBlock::jump(LABEL_END, JUMP_ZERO);
+    block.append(jump);
+    isaselector::simplify(block, *table);
+
+    ASSERT_EQ(block.codes().size(), 2);
+    ThreeAddressCode tac1 = block.codes().front();
+    ThreeAddressCode tac2 = block.codes().back();
+    EXPECT_EQ(tac1.op, ThreeAddressCode::ADD);
+    testVRTacs(tac1, {0, 3, 5});
+    EXPECT_EQ(tac2.op, ThreeAddressCode::JZERO);
+}
+
+TEST_F(TACSimplify, LoadBeforeJumpCond) {
+    SymbolOperand c("c");
+    VirtualRegisterOperand v1(1);
+    ThreeAddressCodeBlock block = ThreeAddressCodeBlock({
+        ThreeAddressCode(v1.copy(), ThreeAddressCode::LOAD, c.copy()),
+        ThreeAddressCodeBlock::jump(LABEL_END, JUMP_ZERO)
+    });
+    isaselector::simplify(block, *table);
+
+    ASSERT_EQ(block.codes().size(), 2);
+    ThreeAddressCode tac1 = block.codes().front();
+    ThreeAddressCode tac2 = block.codes().back();
+    EXPECT_EQ(tac1.op, ThreeAddressCode::LOAD);
+    testVRTacs(tac1, {0, 5});
+    EXPECT_EQ(tac2.op, ThreeAddressCode::JZERO);
+}
+
+TEST_F(TACSimplify, LoadBeforeJumpAlways) {
+    SymbolOperand c("c");
+    VirtualRegisterOperand v1(1);
+    ThreeAddressCodeBlock block = ThreeAddressCodeBlock({
+        ThreeAddressCode(v1.copy(), ThreeAddressCode::LOAD, c.copy()),
+        ThreeAddressCodeBlock::jump(LABEL_END, JUMP_ALWAYS)
+    });
+    isaselector::simplify(block, *table);
+
+    ASSERT_EQ(block.codes().size(), 1);
+    ThreeAddressCode tac1 = block.codes().front();
+    EXPECT_EQ(tac1.op, ThreeAddressCode::JUMP);
+}
+
+TEST_F(TACSimplify, CopyBeforeJumpCond) {
+    SymbolOperand a("a");
+    SymbolOperand c("c");
+    ThreeAddressCodeBlock block = ThreeAddressCodeBlock::copy(a, c);
+    ThreeAddressCode jcond = ThreeAddressCodeBlock::jump(LABEL_END, JUMP_ZERO);
+    block.append(jcond);
+    isaselector::simplify(block, *table);
+
+    ASSERT_EQ(block.codes().size(), 3);
+    auto it = block.codes().begin();
+    std::vector<std::vector<MemoryPosition>> mmm = {{0, 5},
+                                                    {3, 0}};
+    for (int i = 0; i < 2; i++) {
+        EXPECT_EQ(it->op, ThreeAddressCode::LOAD);
+        testVRTacs(*it, mmm[i]);
+        ++it;
+    }
+    EXPECT_EQ(block.codes().back().op, ThreeAddressCode::JZERO);
 }
 
 int main(int argc, char **argv) {

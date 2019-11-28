@@ -43,7 +43,9 @@ public:
     std::unordered_map<std::string, Record>& allRecords();
     void insert(std::string key, Record value) override;
     Record& search(std::string key) override;
+    Record& searchAllRecords(std::string key);
     bool contains(std::string key) override;
+    bool containsAllRecords(std::string key);
     GlobalSymbolTable* copy() const override;
 };
 

@@ -57,7 +57,7 @@ public:
      */
     virtual ThreeAddressCodeBlock post() = 0;
 
-    LoopBlock();
+    LoopBlock(SymbolTable* parentTable);
     BaseBlock* body();
     void setBody(BaseBlock* blocks);
     LabelIdentifier loopLabel();
