@@ -12,6 +12,9 @@ extern "C" {
 #include "utility/Converter.hpp"
 #include "SymbolTable.hpp"
 #include "Record.hpp"
+#include "blocks/MultiplicationBlock.hpp"
+#include "blocks/DivisionBlock.hpp"
+#include "blocks/RemainderBlock.hpp"
 #include <string>
 
 using namespace std;
@@ -24,16 +27,23 @@ protected:
     ASTNode* sampleBody;
     SymbolTable* sampleSymbolTable;
 
-    ASTNode *createSampleBody() {
+    ASTNode *createSampleBody(int astOperator = kOperatorAdd) {
         ASTSymbol s = ASTSymbolCreateSimple((char*) recordName);
         ASTAssignment *a1 = ASTAssignmentCreateWithOperand(s, ASTOperandConstant(12));
-        ASTExpression expr = ASTExpressionCreate(ASTOperandSymbol(s), ASTOperandConstant(10), kOperatorAdd);
+        ASTExpression expr = ASTExpressionCreate(ASTOperandSymbol(s), ASTOperandConstant(10), astOperator);
         ASTAssignment *a2 = ASTAssignmentCreateWithExpression(s, expr);
         ASTNode *n1 = ASTNodeCreate(kNodeAssignment, a1);
         ASTNode *n2 = ASTNodeCreate(kNodeAssignment, a2);
         n1->next = n2;
 
         return n1;
+    }
+
+    ASTNode *createSampleAssignment(int astOperator) {
+        ASTSymbol s = ASTSymbolCreateSimple((char*) recordName);
+        ASTExpression expr = ASTExpressionCreate(ASTOperandSymbol(s), ASTOperandConstant(10), astOperator);
+        ASTAssignment *a2 = ASTAssignmentCreateWithExpression(s, expr);
+        return ASTNodeCreate(kNodeAssignment, a2);
     }
 
     ASTOperand abcOperand() {
@@ -163,6 +173,30 @@ TEST_F(ConverterTest, Branch) {
     EXPECT_EQ(condBlock->condition().op, Condition::Operator::EQ);
     // passBody
     // failBody
+}
+
+TEST_F(ConverterTest, MultiplicationBlock) {
+    ASTNode* astBody = createSampleAssignment(kOperatorMul);
+    BaseBlock* block = irconverter::convertList(astBody, sampleSymbolTable);
+    EXPECT_TRUE(dynamic_cast<MultiplicationBlock*>(block) != nullptr);
+    ASTNodeFreeList(astBody);
+    delete block;
+}
+
+TEST_F(ConverterTest, DivisionBlock) {
+    ASTNode* astBody = createSampleAssignment(kOperatorDiv);
+    BaseBlock* block = irconverter::convertList(astBody, sampleSymbolTable);
+    EXPECT_TRUE(dynamic_cast<DivisionBlock*>(block) != nullptr);
+    ASTNodeFreeList(astBody);
+    delete block;
+}
+
+TEST_F(ConverterTest, RemainderBlock) {
+    ASTNode* astBody = createSampleAssignment(kOperatorMod);
+    BaseBlock* multBlock = irconverter::convertList(astBody, sampleSymbolTable);
+    EXPECT_TRUE(dynamic_cast<RemainderBlock*>(multBlock) != nullptr);
+    ASTNodeFreeList(astBody);
+    delete multBlock;
 }
 
 TEST_F(ConverterTest, SampleBody) {

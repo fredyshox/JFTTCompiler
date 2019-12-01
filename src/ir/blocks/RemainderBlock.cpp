@@ -20,11 +20,12 @@ ThreeAddressCodeBlock RemainderBlock::signAdjustment3() {
     VirtualRegisterOperand v1(1);
     ConstantOperand c0(0);
     SymbolOperand r(remainderRecordName());
-    SymbolOperand sign(signRecordName());
+    Operand& op2 = *_secondOperand;
+
 
     auto check = ThreeAddressCodeBlock({
-        ThreeAddressCode(v1.copy(), ThreeAddressCode::LOAD, sign.copy()),
-        ThreeAddressCodeBlock::jump(_returnValueLabel, JUMP_ZERO)
+        ThreeAddressCode(v1.copy(), ThreeAddressCode::LOAD, op2.copy()),
+        ThreeAddressCodeBlock::jump(_returnValueLabel, JUMP_POSITIVE)
     });
     auto rUpdate = ThreeAddressCodeBlock::subtraction(r, c0, r);
 
