@@ -33,7 +33,7 @@ ForLoopBlock::ForLoopBlock(std::string iterator, LoopRange range, SymbolTable* p
     _loopRange(range) {
     Record rIter = Record::iterator(_iteratorName); 
     std::stringstream ss;
-    ss << "_" << iterator << "_counter";
+    ss << iterator << "_counter";
     _counterName = ss.str();
     Record rCounter = Record::iterator(_counterName);
     _localSymbolTable.insert(_iteratorName, rIter);

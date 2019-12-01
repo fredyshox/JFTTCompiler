@@ -28,7 +28,6 @@ struct Record {
     std::optional<ArrayBounds> bounds;
     int64_t size;
     MemoryPosition offset;
-    int occurrences = 0;
     bool isIterator = false;
     bool isConstant = false;
     bool isMemoryLocation = false;

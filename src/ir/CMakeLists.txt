@@ -10,6 +10,8 @@ set(ir_SOURCES
   blocks/ForLoopBlock.cpp
   blocks/ConditionBlock.cpp
   blocks/WhileLoopBlock.cpp
+  blocks/DivisionBlock.cpp
+  blocks/RemainderBlock.cpp
   blocks/MultiplicationBlock.cpp
   blocks/ThreeAddressCodeBlock.cpp)
 

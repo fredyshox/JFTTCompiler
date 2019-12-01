@@ -4,7 +4,10 @@
 
 #include "MultiplicationBlock.hpp"
 
-MultiplicationBlock::MultiplicationBlock(Operand &dest, Operand &firstOperand, Operand &secondOperand, SymbolTable* parentTable):
+MultiplicationBlock::MultiplicationBlock(Operand &dest,
+                                         Operand &firstOperand,
+                                         Operand &secondOperand,
+                                         SymbolTable* parentTable):
     ControlFlowBlock(NestedSymbolTable(parentTable)),
     _destination(dest.copy()),
     _firstOperand(firstOperand.copy()),
@@ -32,17 +35,17 @@ ThreeAddressCodeBlock MultiplicationBlock::init() {
         ThreeAddressCode(v1.copy(), ThreeAddressCode::LOAD, op2.copy()),
         ThreeAddressCodeBlock::jump(endLabel(), JUMP_ZERO)
     });
-    auto zeroResBlock = ThreeAddressCodeBlock::copy(dest, c0, 2);
     auto preparemultiplicandBlock = ThreeAddressCodeBlock::copy(multiplicand, op2, 4);
     auto prepareMultiplierBlock = ThreeAddressCodeBlock::copy(multiplier, op1, 3);
+    auto zeroResBlock = ThreeAddressCodeBlock::copy(dest, c0, 2);
     auto negativeCheckBlock = ThreeAddressCodeBlock({
         ThreeAddressCodeBlock::jump(negativeInitLabel(), JUMP_NEGATIVE),
         ThreeAddressCodeBlock::jump(bodyLabel(), JUMP_ALWAYS)
     });
 
-    checkZeroBlock.merge(zeroResBlock);
     checkZeroBlock.merge(preparemultiplicandBlock);
     checkZeroBlock.merge(prepareMultiplierBlock);
+    checkZeroBlock.merge(zeroResBlock);
     checkZeroBlock.merge(negativeCheckBlock);
 
     return checkZeroBlock;
@@ -51,7 +54,12 @@ ThreeAddressCodeBlock MultiplicationBlock::init() {
 ThreeAddressCodeBlock MultiplicationBlock::negativeInit() {
     auto c0 = ConstantOperand(0);
     auto multiplicand = SymbolOperand(multiplicandRecordName());
-    return ThreeAddressCodeBlock::subtraction(multiplicand, c0, multiplicand);
+    auto multiplier = SymbolOperand(multiplierRecordName());
+    auto block1 = ThreeAddressCodeBlock::subtraction(multiplicand, c0, multiplicand);
+    auto block2 = ThreeAddressCodeBlock::subtraction(multiplier, c0, multiplier);
+    block1.merge(block2);
+
+    return block1;
 }
 
 ThreeAddressCodeBlock MultiplicationBlock::body() {
