@@ -5,12 +5,12 @@
 #include "Operand.hpp"
 #include "Record.hpp"
 
-NotInMemory::NotInMemory(std::string name): opName(name) {}
+NotInMemory::NotInMemory(std::string opName): message("Operand is not in memory: " + opName) {
+    std::cout << opName << std::endl;
+}
 
 const char* NotInMemory::what() const throw() {
-    std::stringstream ss;
-    ss << "Operand is not in memory: " << opName;
-    return ss.str().c_str();
+    return message.c_str();
 }
 
 std::unique_ptr<Operand> Operand::copy() const {

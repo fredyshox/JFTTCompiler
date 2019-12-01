@@ -35,15 +35,21 @@ ThreeAddressCodeBlock ThreeAddressCodeBlock::binaryOperation(Operand &dest,
                                                               Operand &op2,
                                                               ThreeAddressCode::Operator op,
                                                               uint64_t initialVIndex) {
+    return binaryOperation(dest.copy(), op1.copy(), op2.copy(), op, initialVIndex);
+}
+
+ThreeAddressCodeBlock ThreeAddressCodeBlock::binaryOperation(std::unique_ptr<Operand> dest,
+                                                             std::unique_ptr<Operand> op1, std::unique_ptr<Operand> op2,
+                                                             ThreeAddressCode::Operator op, uint64_t initialVIndex) {
     auto v1 = VirtualRegisterOperand(initialVIndex++);
     auto v2 = VirtualRegisterOperand(initialVIndex++);
     auto v3 = VirtualRegisterOperand(initialVIndex);
 
     std::list<ThreeAddressCode> instructionList = {
-            ThreeAddressCode(v1.copy(), ThreeAddressCode::Operator::LOAD, op1.copy()),
-            ThreeAddressCode(v2.copy(), ThreeAddressCode::Operator::LOAD, op2.copy()),
+            ThreeAddressCode(v1.copy(), ThreeAddressCode::Operator::LOAD, std::move(op1)),
+            ThreeAddressCode(v2.copy(), ThreeAddressCode::Operator::LOAD, std::move(op2)),
             ThreeAddressCode(v3.copy(), op, v1.copy(), v2.copy()),
-            ThreeAddressCode(dest.copy(), ThreeAddressCode::Operator::LOAD, v3.copy())
+            ThreeAddressCode(std::move(dest), ThreeAddressCode::Operator::LOAD, v3.copy())
     };
     return ThreeAddressCodeBlock(instructionList);
 }

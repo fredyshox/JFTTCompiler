@@ -9,7 +9,14 @@
 
 class RemainderBlock: public DivisionBlock {
 public:
-    RemainderBlock(Operand& dest, Operand& firstOperand, Operand& secondOperand, SymbolTable* parentTable);
+    RemainderBlock(std::unique_ptr<Operand> dest,
+                   std::unique_ptr<Operand> firstOperand,
+                   std::unique_ptr<Operand> secondOperand,
+                   SymbolTable* parentTable);
+    RemainderBlock(Operand& dest,
+                   Operand& firstOperand,
+                   Operand& secondOperand,
+                   SymbolTable* parentTable);
     ThreeAddressCodeBlock signAdjustment3() override;
     ThreeAddressCodeBlock returnValue() override;
 };

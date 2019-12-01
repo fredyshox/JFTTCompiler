@@ -3,6 +3,9 @@
 //
 
 #include "Converter.hpp"
+#include "blocks/MultiplicationBlock.hpp"
+#include "blocks/DivisionBlock.hpp"
+#include "blocks/RemainderBlock.hpp"
 #include <string>
 #include <iostream>
 
@@ -32,7 +35,7 @@ BaseBlock* irconverter::convert(ASTNode node, SymbolTable* parentTable) {
     BaseBlock* block = nullptr;
     if (node.type == kNodeAssignment) {
         auto* command = (ASTAssignment*) node.command;
-        block = convert(*command);
+        block = convert(*command, parentTable);
     } else if (node.type == kNodeBranch) {
         auto* command = (ASTBranch*) node.command;
         block = convert(*command, parentTable);
@@ -102,7 +105,11 @@ ThreeAddressCodeBlock* irconverter::convert(ASTIO io) {
     }
 }
 
-ThreeAddressCodeBlock* irconverter::convert(ASTAssignment assignment) {
+bool isPowerOfTwo(int64_t n) {
+    return (n != 0) && ((n & (n - 1)) == 0);
+}
+
+BaseBlock* irconverter::convert(ASTAssignment assignment, SymbolTable* parentTable) {
     auto dest = convert(assignment.symbol);
     if (assignment.rtype == kRTypeExpression) {
         ASTExpression expr = assignment.expression;
@@ -110,16 +117,17 @@ ThreeAddressCodeBlock* irconverter::convert(ASTAssignment assignment) {
         auto op2 = convert(expr.operand2);
         auto tacOperator = convert(expr.op);
 
-        auto v1 = std::make_unique<VirtualRegisterOperand>(1);
-        auto v2 = std::make_unique<VirtualRegisterOperand>(2);
-        auto v3 = std::make_unique<VirtualRegisterOperand>(3);
-        std::list<ThreeAddressCode> instructionList {
-            ThreeAddressCode(v1->copy(), ThreeAddressCode::Operator::LOAD, std::move(op1)),
-            ThreeAddressCode(v2->copy(), ThreeAddressCode::Operator::LOAD, std::move(op2)),
-            ThreeAddressCode(v3->copy(), tacOperator, v1->copy(), v2->copy()),
-            ThreeAddressCode(std::move(dest), ThreeAddressCode::Operator::LOAD, v3->copy())
-        };
-        return new ThreeAddressCodeBlock(instructionList);
+        if (tacOperator == ThreeAddressCode::Operator::MUL) {
+            return new MultiplicationBlock(std::move(dest), std::move(op1), std::move(op2), parentTable);
+        } else if (tacOperator == ThreeAddressCode::Operator::DIV) {
+            return new DivisionBlock(std::move(dest), std::move(op1), std::move(op2), parentTable);
+        } else if (tacOperator == ThreeAddressCode::Operator::MOD) {
+            return new RemainderBlock(std::move(dest), std::move(op1), std::move(op2), parentTable);
+        }
+
+        ThreeAddressCodeBlock binExpr =
+                ThreeAddressCodeBlock::binaryOperation(std::move(dest), std::move(op1), std::move(op2), tacOperator, 1);
+        return new ThreeAddressCodeBlock(binExpr);
     } else { //kRTypeOperand
         auto op1 = convert(assignment.operand);
         auto v1 = std::make_unique<VirtualRegisterOperand>(1);

@@ -17,7 +17,14 @@ private:
     std::unique_ptr<Operand> _firstOperand;
     std::unique_ptr<Operand> _secondOperand;
 public:
-    MultiplicationBlock(Operand& dest, Operand& firstOperand, Operand& secondOperand, SymbolTable* parentTable);
+    MultiplicationBlock(std::unique_ptr<Operand> dest,
+                        std::unique_ptr<Operand> op1,
+                        std::unique_ptr<Operand> op2,
+                        SymbolTable* parentTable);
+    MultiplicationBlock(Operand& dest,
+                        Operand& firstOperand,
+                        Operand& secondOperand,
+                        SymbolTable* parentTable);
     /**
      * Block of tacs places before multiplication loop body
      * @return tacBlock

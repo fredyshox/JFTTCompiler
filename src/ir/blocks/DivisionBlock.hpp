@@ -6,6 +6,7 @@
 #define ir_divisionblock_hpp
 
 #include "ControlFlowBlock.hpp"
+#include <memory>
 
 class DivisionBlock: public ControlFlowBlock {
 protected:
@@ -21,7 +22,14 @@ protected:
     LabelIdentifier _signAdjustment3Label;
     LabelIdentifier _returnValueLabel;
 public:
-    DivisionBlock(Operand& dest, Operand& firstOperand, Operand& secondOperand, SymbolTable* parentTable);
+    DivisionBlock(std::unique_ptr<Operand> dest,
+                  std::unique_ptr<Operand> firstOperand,
+                  std::unique_ptr<Operand> secondOperand,
+                  SymbolTable* parentTable);
+    DivisionBlock(Operand& dest,
+                  Operand& firstOperand,
+                  Operand& secondOperand,
+                  SymbolTable* parentTable);
     virtual ThreeAddressCodeBlock init();
     virtual ThreeAddressCodeBlock signAdjustment1();
     virtual ThreeAddressCodeBlock signAdjustment2();

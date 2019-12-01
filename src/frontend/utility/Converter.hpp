@@ -5,7 +5,7 @@
 #ifndef frontend_converter_hpp
 #define frontend_converter_hpp
 
-#include "blocks/ControlFlowBlock.hpp"
+#include "blocks/BaseBlock.hpp"
 #include "blocks/WhileLoopBlock.hpp"
 #include "blocks/ForLoopBlock.hpp"
 #include "blocks/ConditionBlock.hpp"
@@ -30,7 +30,7 @@ namespace irconverter {
     ForLoopBlock* convert(ASTForLoop forLoop, SymbolTable* parentTable);
     WhileLoopBlock* convert(ASTWhileLoop whileLoop, SymbolTable* parentTable);
     ConditionBlock* convert(ASTBranch branch, SymbolTable* parentTable);
-    ThreeAddressCodeBlock* convert(ASTAssignment assignment);
+    BaseBlock* convert(ASTAssignment assignment, SymbolTable* parentTable);
     ThreeAddressCodeBlock* convert(ASTIO io);
     Condition convert(ASTCondition astCondition);
     std::unique_ptr<Operand> convert(ASTOperand astOperand);

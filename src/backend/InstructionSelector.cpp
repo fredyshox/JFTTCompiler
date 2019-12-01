@@ -240,7 +240,7 @@ void isaselector::match(AssemblyBlock& asmBlock, JumpTable& jtable, ThreeAddress
             if (vvv[i] == nullptr)
                 throw ISAMatchFailed("Operand has too few operands!");
 
-            *(mmm[i]) = vvv[i]->memoryPosition(table); // TODO expeption
+            *(mmm[i]) = vvv[i]->memoryPosition(table);
         }
         if (nArgs == 0) {
             if (!tac.label.has_value())

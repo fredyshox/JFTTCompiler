@@ -6,6 +6,7 @@
 #define ir_threeaddresscodeblock_hpp
 
 #include <list>
+#include <memory>
 #include "BaseBlock.hpp"
 #include "ThreeAddressCode.hpp"
 
@@ -26,7 +27,16 @@ public:
     void append(ThreeAddressCode& code);
     std::list<ThreeAddressCodeBlock> flatten() override;
     // factory
-    static ThreeAddressCodeBlock binaryOperation(Operand& dest, Operand& op1, Operand& op2, ThreeAddressCode::Operator op, uint64_t initialVIndex);
+    static ThreeAddressCodeBlock binaryOperation(Operand& dest,
+                                                 Operand& op1,
+                                                 Operand& op2,
+                                                 ThreeAddressCode::Operator op,
+                                                 uint64_t initialVIndex);
+    static ThreeAddressCodeBlock binaryOperation(std::unique_ptr<Operand> dest,
+                                                 std::unique_ptr<Operand> op1,
+                                                 std::unique_ptr<Operand> op2,
+                                                 ThreeAddressCode::Operator op,
+                                                 uint64_t initialVIndex);
     static ThreeAddressCodeBlock addition(Operand& dest, Operand& op1, Operand& op2, uint64_t initialVIndex = 1);
     static ThreeAddressCodeBlock subtraction(Operand& dest, Operand& op1, Operand& op2, uint64_t initialVIndex = 1);
     static ThreeAddressCodeBlock multiplication(Operand& dest, Operand& op1, Operand& op2, uint64_t initialVIndex = 1);

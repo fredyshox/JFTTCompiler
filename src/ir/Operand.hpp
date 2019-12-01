@@ -14,8 +14,8 @@
 #include "SymbolTable.hpp"
 
 struct NotInMemory: public std::exception {
-    const std::string opName;
-    explicit NotInMemory(std::string name);
+    const std::string message;
+    explicit NotInMemory(std::string opName);
     const char* what() const throw() override;
 };
 

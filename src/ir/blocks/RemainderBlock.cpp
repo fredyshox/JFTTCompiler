@@ -4,6 +4,12 @@
 
 #include "RemainderBlock.hpp"
 
+RemainderBlock::RemainderBlock(std::unique_ptr<Operand> dest,
+                               std::unique_ptr<Operand> firstOperand,
+                               std::unique_ptr<Operand> secondOperand,
+                               SymbolTable *parentTable):
+    DivisionBlock(std::move(dest), std::move(firstOperand), std::move(secondOperand), parentTable) {}
+
 RemainderBlock::RemainderBlock(Operand &dest,
                                Operand &firstOperand,
                                Operand &secondOperand,

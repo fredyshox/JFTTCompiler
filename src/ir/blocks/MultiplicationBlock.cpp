@@ -4,14 +4,14 @@
 
 #include "MultiplicationBlock.hpp"
 
-MultiplicationBlock::MultiplicationBlock(Operand &dest,
-                                         Operand &firstOperand,
-                                         Operand &secondOperand,
-                                         SymbolTable* parentTable):
+MultiplicationBlock::MultiplicationBlock(std::unique_ptr<Operand> dest,
+                                         std::unique_ptr<Operand> op1,
+                                         std::unique_ptr<Operand> op2,
+                                         SymbolTable *parentTable):
     ControlFlowBlock(NestedSymbolTable(parentTable)),
-    _destination(dest.copy()),
-    _firstOperand(firstOperand.copy()),
-    _secondOperand(secondOperand.copy()) {
+    _destination(std::move(dest)),
+    _firstOperand(std::move(op1)),
+    _secondOperand(std::move(op2)) {
     _negativeInitLabel = genLabel();
     _bodyLabel = genLabel();
     _postBodyLabel = genLabel();
@@ -21,8 +21,15 @@ MultiplicationBlock::MultiplicationBlock(Operand &dest,
     _localSymbolTable.insert(multiplicand.name, multiplicand);
 }
 
+MultiplicationBlock::MultiplicationBlock(Operand &dest,
+                                         Operand &firstOperand,
+                                         Operand &secondOperand,
+                                         SymbolTable* parentTable):
+    MultiplicationBlock(dest.copy(), firstOperand.copy(), secondOperand.copy(), parentTable) {}
+
 ThreeAddressCodeBlock MultiplicationBlock::init() {
     auto v1 = VirtualRegisterOperand(1);
+    auto v8 = VirtualRegisterOperand(8);
     auto c0 = ConstantOperand(0);
     auto multiplier = SymbolOperand(multiplierRecordName());
     auto multiplicand = SymbolOperand(multiplicandRecordName());
@@ -35,10 +42,11 @@ ThreeAddressCodeBlock MultiplicationBlock::init() {
         ThreeAddressCode(v1.copy(), ThreeAddressCode::LOAD, op2.copy()),
         ThreeAddressCodeBlock::jump(endLabel(), JUMP_ZERO)
     });
-    auto preparemultiplicandBlock = ThreeAddressCodeBlock::copy(multiplicand, op2, 4);
-    auto prepareMultiplierBlock = ThreeAddressCodeBlock::copy(multiplier, op1, 3);
-    auto zeroResBlock = ThreeAddressCodeBlock::copy(dest, c0, 2);
+    auto preparemultiplicandBlock = ThreeAddressCodeBlock::copy(multiplicand, op2, 2);
+    auto prepareMultiplierBlock = ThreeAddressCodeBlock::copy(multiplier, op1, 4);
+    auto zeroResBlock = ThreeAddressCodeBlock::copy(dest, c0, 6);
     auto negativeCheckBlock = ThreeAddressCodeBlock({
+        ThreeAddressCode(v8.copy(), ThreeAddressCode::LOAD, multiplier.copy()),
         ThreeAddressCodeBlock::jump(negativeInitLabel(), JUMP_NEGATIVE),
         ThreeAddressCodeBlock::jump(bodyLabel(), JUMP_ALWAYS)
     });
