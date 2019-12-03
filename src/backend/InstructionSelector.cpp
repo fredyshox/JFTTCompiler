@@ -242,8 +242,16 @@ void optimalAddition(AssemblyBlock& asmBlock, MemoryPosition& mop1, MemoryPositi
             asmBlock.push_back(Assembly::Add(nonZero));
         }
     } else {
-        asmBlock.push_back(Assembly::Load(mop1));
-        asmBlock.push_back(Assembly::Add(mop2));
+        if (constants.find(mop1) != constants.end() && (constants[mop1] == 1 || constants[mop1] == -1)) {
+            asmBlock.push_back(Assembly::Load(mop2));
+            asmBlock.push_back(constants[mop1] == 1 ? Assembly::Inc() : Assembly::Dec());
+        } else if (constants.find(mop2) != constants.end() && (constants[mop2] == 1 || constants[mop2] == -1)) {
+            asmBlock.push_back(Assembly::Load(mop1));
+            asmBlock.push_back(constants[mop2] == 1 ? Assembly::Inc() : Assembly::Dec());
+        } else {
+            asmBlock.push_back(Assembly::Load(mop1));
+            asmBlock.push_back(Assembly::Add(mop2));
+        }
     }
 }
 
@@ -259,7 +267,11 @@ void optimalSubtraction(AssemblyBlock& asmBlock, MemoryPosition& mop1, MemoryPos
         }
     } else {
         asmBlock.push_back(Assembly::Load(mop1));
-        asmBlock.push_back(Assembly::Sub(mop2));
+        if (constants.find(mop2) != constants.end() && (constants[mop2] == 1 || constants[mop2] == -1)) {
+            asmBlock.push_back(constants[mop2] == 1 ? Assembly::Dec() : Assembly::Inc());
+        } else {
+            asmBlock.push_back(Assembly::Sub(mop2));
+        }
     }
 }
 

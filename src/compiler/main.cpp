@@ -55,6 +55,12 @@ int main(int argc, const char** argv) {
         ConstantTable constantTable;
         std::list<ThreeAddressCodeBlock> llir = isaselector::expand(*startBlock, globalSymbolTableRef, constantTable);
 
+        std::cout << "Constant map: ";
+        for (auto& x: constantTable) {
+            std::cout << x.first << " : " << x.second << ", ";
+        }
+        std::cout << std::endl;
+
         std::cerr << "Memory map: " << std::endl;
         for (auto& it : globalSymbolTableRef.allRecords()) {
             std::cerr << it.second.name << " : " << it.second.offset << ", ";
