@@ -68,8 +68,30 @@ namespace isaselector {
      * Fills block with instructions of loading constant value into memory location 0
      * @param block block to be filled
      * @param value constant signed value
+     * @param location of 1 constant, required for efficient number generation
      */
-    void loadValueToP0(AssemblyBlock& asmBlock, int64_t value);
+    void loadValueToP0(AssemblyBlock& asmBlock, int64_t value, MemoryPosition c1Location);
+
+    /**
+     * Calculate cost of loading value using standard loading method
+     * @param value
+     * @return cost
+     */
+    uint64_t loadingCost1(int64_t value);
+
+    /**
+     * Calculate cost of loading value using method optimized for small numbers
+     * @param value
+     * @return cost
+     */
+    uint64_t loadingCost2(int64_t value);
+
+    /**
+     * Calculate cost of loading value using method optimized for numbers > 28 and < 1155
+     * @param value
+     * @return cost
+     */
+    uint64_t loadingCost3(int64_t value);
 }
 
 #endif /* backend_instruciton_selector_hpp */

@@ -40,9 +40,10 @@ int astoptimizer::optimize(ASTNode* node) {
         return 0;
     } else if (node->type == kNodeWhileLoop) {
         auto* command = (ASTWhileLoop*) node->command;
+        ASTNode* body = command->start;
         result = optimize(command);
+
         if (result == ACTION_EXTRACT_BODY1) {
-            ASTNode* body = command->start;
             if (prev != nullptr) {
                 prev->next = body;
                 body->prev = prev;
@@ -56,21 +57,22 @@ int astoptimizer::optimize(ASTNode* node) {
                 body->next = next;
                 next->prev = body;
             }
-        }
-
-        if (result == ACTION_NOTHING) {
-            // TODO optimize body
+        } else if (result == ACTION_NOTHING) {
+            optimizeList(&command->start);
+            result = (command->start == nullptr) ? ACTION_REMOVE : result;
         }
     } else if (node->type == kNodeForLoop) {
         auto* command = (ASTForLoop*) node->command;
         result = optimize(command);
 
         if (result == ACTION_NOTHING) {
-            // TODO optimize body
+            optimizeList(&command->start);
+            result = (command->start == nullptr) ? ACTION_REMOVE : result;
         }
     } else if (node->type == kNodeBranch) {
         auto* command = (ASTBranch*) node->command;
         result = optimize(command);
+
         if (result == ACTION_EXTRACT_BODY1 || result == ACTION_EXTRACT_BODY2) {
             ASTNode* body;
             if (result == ACTION_EXTRACT_BODY1) {
@@ -95,8 +97,10 @@ int astoptimizer::optimize(ASTNode* node) {
                 next->prev = body;
             }
         } else if (result == ACTION_NOTHING) {
-            // TODO optimize ifBody
-            // TODO optimize elseBody
+            ASTNode** passBody = &command->ifNode;
+            ASTNode** failBody = &command->elseNode;
+            optimizeList(passBody);
+            optimizeList(failBody);
         }
     }
 

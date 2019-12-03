@@ -22,6 +22,15 @@ std::list<ThreeAddressCodeBlock> isaselector::expand(BaseBlock &program, GlobalS
     // flatten the program into tac blocks
     std::list<ThreeAddressCodeBlock> flatTacs = BaseBlock::flattenBlockList(&program);
 
+    // helpful lambda for constants
+    auto insertConstant = [&symbolTable](std::string rname) mutable {
+        if (!symbolTable.contains(rname)) {
+            Record record = Record::integer(rname);
+            record.isConstant = true;
+            symbolTable.insert(rname, record);
+        }
+    };
+
     // add all other permanent operands to symbol table and assign memory position.
     // this will add constants
     Operand* ccc[3] = {nullptr, nullptr, nullptr};
@@ -35,19 +44,11 @@ std::list<ThreeAddressCodeBlock> isaselector::expand(BaseBlock &program, GlobalS
                 if (!ccc[i]->isPermanent()) continue;
 
                 std::string rname = ccc[i]->recordName();
-                if (!symbolTable.contains(rname)) {
-                    Record record = Record::integer(rname);
-                    record.isConstant = true;
-                    symbolTable.insert(rname, record);
-                }
+                insertConstant(rname);
 
                 if (auto aso = dynamic_cast<ArraySymbolOperand*>(ccc[i])) {
                     rname = aso->index->recordName();
-                    if (!symbolTable.contains(rname)) {
-                        Record record = Record::integer(rname);
-                        record.isConstant = true;
-                        symbolTable.insert(rname, record);
-                    }
+                    insertConstant(rname);
                 }
             }
         }
@@ -339,18 +340,25 @@ void isaselector::match(AssemblyBlock& asmBlock, JumpTable& jtable, ThreeAddress
 
 void isaselector::initializationBlock(AssemblyBlock& asmBlock, GlobalSymbolTable& symbolTable) {
     std::unordered_map<std::string, Record>& recordMap = symbolTable.allRecords();
+
+    // c1 creation
+    asmBlock.push_back(Assembly::Sub(0));
+    asmBlock.push_back(Assembly::Inc());
+    asmBlock.push_back(Assembly::Store(MM_TEMP5));
+
+    // rest
     for (auto& it : recordMap) {
         Record record = it.second;
         if (record.isMemoryLocation) {
             std::string name = record.name.substr(3);
             Record parentRecord = recordMap.at(name);
             // code gen
-            loadValueToP0(asmBlock, parentRecord.memoryPosition());
+            loadValueToP0(asmBlock, parentRecord.memoryPosition(), MM_TEMP5);
             asmBlock.push_back(Assembly::Store(record.memoryPosition()));
         } else if (record.isConstant) {
             std::string name = record.name.substr(3);
             int64_t value = std::stoll(name);
-            loadValueToP0(asmBlock, value);
+            loadValueToP0(asmBlock, value, MM_TEMP5);
             asmBlock.push_back(Assembly::Store(record.memoryPosition()));
         }
     }
@@ -381,7 +389,72 @@ void isaselector::applyJumpTable(AssemblyBlock &asmBlock, JumpTable &jtable) noe
     }
 }
 
-void isaselector::loadValueToP0(AssemblyBlock& asmBlock, int64_t value) {
+// MARK: Value loading
+
+void loadValueToP0_small(AssemblyBlock& asmBlock, int64_t value, MemoryPosition c1Location) {
+    asmBlock.push_back(Assembly::Sub(0));
+    if (value == 0) {
+        return;
+    }
+
+    Assembly op = (value > 0) ? Assembly::Inc() : Assembly::Dec();
+    value = abs(value);
+
+    bool odd = false;
+    if (value % 2 != 0) {
+        odd = true;
+        value -= 1;
+    }
+
+    if (value == 0) {
+        return;
+    }
+
+    if ((value / 2) < 5) {
+        asmBlock.insert(asmBlock.end(), (uint64_t) value, op);
+    } else {
+        asmBlock.insert(asmBlock.end(), (uint64_t) value / 2, op);
+        asmBlock.push_back(Assembly::Shift(c1Location));
+    }
+
+    if (odd) {
+        asmBlock.push_back(op);
+    }
+}
+
+void loadValueToP0_medium(AssemblyBlock& asmBlock, int64_t value, MemoryPosition c1Location) {
+    asmBlock.push_back(Assembly::Sub(0));
+    if (value == 0) {
+        return;
+    }
+
+    Assembly op = (value > 0) ? Assembly::Inc() : Assembly::Dec();
+    value = abs(value);
+
+    bool odd = false;
+    if (value % 2 != 0) {
+        odd = true;
+        value -= 1;
+    }
+
+    if (value == 0) {
+        return;
+    }
+
+    uint64_t count = 0;
+    while ((value & 1) == 0 && value > 5) {
+        count += 1;
+        value = value >> 1;
+    }
+
+    asmBlock.insert(asmBlock.end(), (uint64_t) value, op);
+    asmBlock.insert(asmBlock.end(), count, Assembly::Shift(c1Location));
+    if (odd) {
+        asmBlock.push_back(op);
+    }
+}
+
+void loadValueToP0_large(AssemblyBlock& asmBlock, int64_t value, MemoryPosition c1Location) {
     asmBlock.push_back(Assembly::Sub(0));
     if (value == 0) {
         return;
@@ -390,12 +463,8 @@ void isaselector::loadValueToP0(AssemblyBlock& asmBlock, int64_t value) {
     if (value > 0) {
         asmBlock.push_back(Assembly::Inc());
         asmBlock.push_back(Assembly::Store(MM_TEMP4));
-        asmBlock.push_back(Assembly::Store(MM_TEMP5));
         asmBlock.push_back(Assembly::Dec());
     } else {
-        asmBlock.push_back(Assembly::Inc());
-        asmBlock.push_back(Assembly::Store(MM_TEMP5));
-        asmBlock.push_back(Assembly::Dec());
         asmBlock.push_back(Assembly::Dec());
         asmBlock.push_back(Assembly::Store(MM_TEMP4));
         asmBlock.push_back(Assembly::Inc());
@@ -412,9 +481,93 @@ void isaselector::loadValueToP0(AssemblyBlock& asmBlock, int64_t value) {
         if (value != 0) {
             asmBlock.push_back(Assembly::Store(MM_TEMP3));
             asmBlock.push_back(Assembly::Load(MM_TEMP4));
-            asmBlock.push_back(Assembly::Shift(MM_TEMP5));
+            asmBlock.push_back(Assembly::Shift(c1Location));
             asmBlock.push_back(Assembly::Store(MM_TEMP4));
             asmBlock.push_back(Assembly::Load(MM_TEMP3));
         }
     }
+}
+
+void isaselector::loadValueToP0(AssemblyBlock& asmBlock, int64_t value, MemoryPosition c1Location) {
+    int64_t avalue = abs(value);
+    if (avalue < 28) {
+        loadValueToP0_small(asmBlock, value, c1Location);
+    } else if (avalue < 1135) {
+        loadValueToP0_medium(asmBlock, value, c1Location);
+    } else {
+        loadValueToP0_large(asmBlock, value, c1Location);
+    }
+}
+
+// MARK: Value loading cost
+
+uint64_t isaselector::loadingCost1(int64_t value) {
+    uint64_t cost = 10;
+    if (value == 0) {
+        return cost;
+    }
+
+    if (value > 0) {
+        cost += 22;
+    } else {
+        cost += 24;
+    }
+
+    value = abs(value);
+    while (value != 0) {
+        cost += 10;
+
+        value = value >> 1;
+
+        if (value != 0) {
+            cost += 45;
+        }
+    }
+
+    return cost;
+}
+
+uint64_t isaselector::loadingCost2(int64_t value) {
+    uint64_t cost = 10;
+    if (value == 0) {
+        return cost;
+    }
+
+    value = abs(value);
+    if (value % 2 != 0) {
+        cost += 1;
+        value -= 1;
+    }
+
+    cost += value / 2;
+    value = value / 2;
+
+    if (value < 10) {
+        cost += value;
+    } else {
+        cost += 10;
+    }
+
+    return cost;
+}
+
+uint64_t isaselector::loadingCost3(int64_t value) {
+    uint64_t cost = 10;
+    if (value == 0) {
+        return cost;
+    }
+
+    value = abs(value);
+    if (value % 2 != 0) {
+        cost += 1;
+        value -= 1;
+    }
+
+    while ((value & 0x01) == 0 && value > 10) {
+        cost += 10;
+        value >>= 1;
+    }
+
+    cost += value;
+    return cost;
 }

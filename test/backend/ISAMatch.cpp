@@ -194,6 +194,7 @@ TEST(ISAMatch, MemoryMapOffsets) {
 void testNumberGenerator(int64_t expected, AssemblyBlock& asmBlock) {
     int64_t mem[10];
     memset(mem, 0, 10);
+    mem[5] = 1;
     for (Assembly& a : asmBlock) {
         if (a.mnemonic() == "ADD") {
             mem[0] = mem[0] + mem[a.argument().value()];
@@ -217,26 +218,44 @@ void testNumberGenerator(int64_t expected, AssemblyBlock& asmBlock) {
 
 TEST(ISAMatch, NumberGenerator1) {
     AssemblyBlock block;
-    isaselector::loadValueToP0(block, 10);
+    isaselector::loadValueToP0(block, 10, 5);
     testNumberGenerator(10, block);
 }
 
 TEST(ISAMatch, NumberGenerator2) {
     AssemblyBlock block;
-    isaselector::loadValueToP0(block, 31);
+    isaselector::loadValueToP0(block, 31, 5);
     testNumberGenerator(31, block);
 }
 
 TEST(ISAMatch, NumberGenerator3) {
     AssemblyBlock block;
-    isaselector::loadValueToP0(block, -71);
+    isaselector::loadValueToP0(block, -71, 5);
     testNumberGenerator(-71, block);
 }
 
 TEST(ISAMatch, NumberGenerator4) {
     AssemblyBlock block;
-    isaselector::loadValueToP0(block, -28);
-    testNumberGenerator(-28, block);
+    isaselector::loadValueToP0(block, -27, 5);
+    testNumberGenerator(-27, block);
+}
+
+TEST(ISAMatch, NumberGenerator5) {
+    AssemblyBlock block;
+    isaselector::loadValueToP0(block, 987, 5);
+    testNumberGenerator(987, block);
+}
+
+TEST(ISAMatch, NumberGenerator6) {
+    AssemblyBlock block;
+    isaselector::loadValueToP0(block, -512, 5);
+    testNumberGenerator(-512, block);
+}
+
+TEST(ISAMatch, NumberGenerator7) {
+    AssemblyBlock block;
+    isaselector::loadValueToP0(block, 2569, 5);
+    testNumberGenerator(2569, block);
 }
 
 int main(int argc, char **argv) {

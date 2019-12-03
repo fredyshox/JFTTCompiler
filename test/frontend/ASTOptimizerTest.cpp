@@ -177,7 +177,21 @@ TEST(ASTOptimizerTest, NodeListManipulation) {
 }
 
 TEST(ASTOptimizerTest, NestedOptimimalizations) {
-    FAIL();
+    auto* body1 = nonTrivialNode();
+    auto* body2 = nonTrivialNode();
+    auto* forLoopCommand = ASTLoopCreateForTo("i", ASTOperandConstant(1), ASTOperandConstant(0), body1);
+    auto* forLoopNode = ASTNodeCreate(kNodeForLoop, forLoopCommand);
+    forLoopNode->next = body2;
+    body2->prev = forLoopNode;
+
+    ASTCondition cond = ASTConditionCreate(ASTOperandSymbol(ASTSymbolCreateSimple("a")), ASTOperandConstant(2), kCondOperatorLess);
+    auto* branch = ASTBranchCreate(cond, forLoopNode);
+    auto* branchNode = ASTNodeCreate(kNodeBranch, branch);
+
+    ASSERT_EQ(astoptimizer::optimize(branchNode), 0);
+    EXPECT_TRUE(branch->ifNode == body2);
+    EXPECT_TRUE(branch->ifNode->next == nullptr);
+    EXPECT_TRUE(branch->ifNode->prev == nullptr);
 }
 
 int main(int argc, char **argv) {
