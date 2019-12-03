@@ -109,6 +109,87 @@ bool isPowerOfTwo(int64_t n) {
     return (n != 0) && ((n & (n - 1)) == 0);
 }
 
+int64_t integerlog2(int64_t n) {
+    int64_t res = 0;
+    while (n >>= 1) ++res;
+
+    return res;
+}
+
+BaseBlock* optimalMultiplication(ASTExpression expr,
+                                 std::unique_ptr<Operand> dest,
+                                 std::unique_ptr<Operand> op1,
+                                 std::unique_ptr<Operand> op2,
+                                 SymbolTable* parentTable) {
+    if (expr.operand1.type == kOperandConstant && isPowerOfTwo(expr.operand1.constant)) {
+        int64_t constant = expr.operand1.constant;
+        ConstantOperand shiftVal(integerlog2(abs(constant)));
+
+        ThreeAddressCodeBlock signAdjust;
+        if (constant < 0) {
+            ConstantOperand c0(0);
+            signAdjust = ThreeAddressCodeBlock::subtraction(*dest, c0, *dest, 5);
+        }
+
+        ThreeAddressCodeBlock block = ThreeAddressCodeBlock::binaryOperation(std::move(dest),
+                                                                             std::move(op2),
+                                                                             shiftVal.copy(),
+                                                                             ThreeAddressCode::LSHIFT,
+                                                                             1);
+        block.merge(signAdjust);
+        op1.reset();
+        return new ThreeAddressCodeBlock(block);
+    } else if (expr.operand2.type == kOperandConstant && isPowerOfTwo(expr.operand2.constant)) {
+        int64_t constant = expr.operand2.constant;
+        ConstantOperand shiftVal(integerlog2(abs(constant)));
+
+        ThreeAddressCodeBlock signAdjust;
+        if (constant < 0) {
+            ConstantOperand c0(0);
+            signAdjust = ThreeAddressCodeBlock::subtraction(*dest, c0, *dest, 5);
+        }
+
+        ThreeAddressCodeBlock block = ThreeAddressCodeBlock::binaryOperation(std::move(dest),
+                                                                             std::move(op1),
+                                                                             shiftVal.copy(),
+                                                                             ThreeAddressCode::LSHIFT,
+                                                                             1);
+        block.merge(signAdjust);
+        op2.reset();
+        return new ThreeAddressCodeBlock(block);
+    } else {
+        return new MultiplicationBlock(std::move(dest), std::move(op1), std::move(op2), parentTable);
+    }
+}
+
+BaseBlock* optimalDivision(ASTExpression expr,
+                           std::unique_ptr<Operand> dest,
+                           std::unique_ptr<Operand> op1,
+                           std::unique_ptr<Operand> op2,
+                           SymbolTable* parentTable) {
+    if (expr.operand2.type == kOperandConstant && isPowerOfTwo(expr.operand2.constant)) {
+        int64_t constant = expr.operand2.constant;
+        ConstantOperand shiftVal(-1 * integerlog2(abs(constant)));
+
+        ThreeAddressCodeBlock signAdjust;
+        if (constant < 0) {
+            ConstantOperand c0(0);
+            signAdjust = ThreeAddressCodeBlock::subtraction(*dest, c0, *dest, 5);
+        }
+
+        ThreeAddressCodeBlock block = ThreeAddressCodeBlock::binaryOperation(std::move(dest),
+                                                                             std::move(op1),
+                                                                             shiftVal.copy(),
+                                                                             ThreeAddressCode::LSHIFT,
+                                                                             1);
+        block.merge(signAdjust);
+        op2.reset();
+        return new ThreeAddressCodeBlock(block);
+    } else {
+        return new DivisionBlock(std::move(dest), std::move(op1), std::move(op2), parentTable);
+    }
+}
+
 BaseBlock* irconverter::convert(ASTAssignment assignment, SymbolTable* parentTable) {
     auto dest = convert(assignment.symbol);
     if (assignment.rtype == kRTypeExpression) {
@@ -117,10 +198,11 @@ BaseBlock* irconverter::convert(ASTAssignment assignment, SymbolTable* parentTab
         auto op2 = convert(expr.operand2);
         auto tacOperator = convert(expr.op);
 
+
         if (tacOperator == ThreeAddressCode::Operator::MUL) {
-            return new MultiplicationBlock(std::move(dest), std::move(op1), std::move(op2), parentTable);
+            return optimalMultiplication(expr, std::move(dest), std::move(op1), std::move(op2), parentTable);
         } else if (tacOperator == ThreeAddressCode::Operator::DIV) {
-            return new DivisionBlock(std::move(dest), std::move(op1), std::move(op2), parentTable);
+            return optimalDivision(expr, std::move(dest), std::move(op1), std::move(op2), parentTable);
         } else if (tacOperator == ThreeAddressCode::Operator::MOD) {
             return new RemainderBlock(std::move(dest), std::move(op1), std::move(op2), parentTable);
         }
