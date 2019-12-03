@@ -45,10 +45,16 @@ std::list<ThreeAddressCodeBlock> isaselector::expand(BaseBlock &program, GlobalS
 
                 std::string rname = ccc[i]->recordName();
                 insertConstant(rname);
+                if (!symbolTable.contains(rname)) {
+                    std::cout << "FUCCK" << std::endl;
+                }
 
                 if (auto aso = dynamic_cast<ArraySymbolOperand*>(ccc[i])) {
                     rname = aso->index->recordName();
                     insertConstant(rname);
+                    if (!symbolTable.contains(rname)) {
+                        std::cout << "FUCCK" << std::endl;
+                    }
                 }
             }
         }
@@ -406,15 +412,13 @@ void loadValueToP0_small(AssemblyBlock& asmBlock, int64_t value, MemoryPosition 
         value -= 1;
     }
 
-    if (value == 0) {
-        return;
-    }
-
-    if ((value / 2) < 5) {
-        asmBlock.insert(asmBlock.end(), (uint64_t) value, op);
-    } else {
-        asmBlock.insert(asmBlock.end(), (uint64_t) value / 2, op);
-        asmBlock.push_back(Assembly::Shift(c1Location));
+    if (value != 0) {
+        if ((value / 2) < 5) {
+            asmBlock.insert(asmBlock.end(), (uint64_t) value, op);
+        } else {
+            asmBlock.insert(asmBlock.end(), (uint64_t) value / 2, op);
+            asmBlock.push_back(Assembly::Shift(c1Location));
+        }
     }
 
     if (odd) {
@@ -437,18 +441,17 @@ void loadValueToP0_medium(AssemblyBlock& asmBlock, int64_t value, MemoryPosition
         value -= 1;
     }
 
-    if (value == 0) {
-        return;
+    if (value != 0) {
+        uint64_t count = 0;
+        while ((value & 1) == 0 && value > 5) {
+            count += 1;
+            value = value >> 1;
+        }
+
+        asmBlock.insert(asmBlock.end(), (uint64_t) value, op);
+        asmBlock.insert(asmBlock.end(), count, Assembly::Shift(c1Location));;
     }
 
-    uint64_t count = 0;
-    while ((value & 1) == 0 && value > 5) {
-        count += 1;
-        value = value >> 1;
-    }
-
-    asmBlock.insert(asmBlock.end(), (uint64_t) value, op);
-    asmBlock.insert(asmBlock.end(), count, Assembly::Shift(c1Location));
     if (odd) {
         asmBlock.push_back(op);
     }
@@ -497,6 +500,8 @@ void isaselector::loadValueToP0(AssemblyBlock& asmBlock, int64_t value, MemoryPo
     } else {
         loadValueToP0_large(asmBlock, value, c1Location);
     }
+
+    //loadValueToP0_large(asmBlock, value, c1Location);
 }
 
 // MARK: Value loading cost

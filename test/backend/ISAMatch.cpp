@@ -258,6 +258,18 @@ TEST(ISAMatch, NumberGenerator7) {
     testNumberGenerator(2569, block);
 }
 
+TEST(ISAMatch, BatchNumberGenerator) {
+    for (int64_t i = 0; i < 2000; i++) {
+        AssemblyBlock block;
+        // positive
+        isaselector::loadValueToP0(block, i, 5);
+        testNumberGenerator(i, block);
+        // negative
+        isaselector::loadValueToP0(block, -1 * i, 5);
+        testNumberGenerator(-1 * i, block);
+    }
+}
+
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
