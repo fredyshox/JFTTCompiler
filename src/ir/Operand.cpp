@@ -13,6 +13,12 @@ const char* NotInMemory::what() const throw() {
     return message.c_str();
 }
 
+NoConstantValue::NoConstantValue(std::string opName): message("Operand does not have constant value: " + opName) {}
+
+const char* NoConstantValue::what() const throw() {
+    return message.c_str();
+}
+
 std::unique_ptr<Operand> Operand::copy() const {
     return std::unique_ptr<Operand>(copyImpl());
 }
@@ -25,11 +31,19 @@ MemoryPosition Operand::memoryPosition(GlobalSymbolTable &table) {
     throw NotInMemory("no name");
 }
 
+bool Operand::hasConstantValue() {
+    return false;
+}
+
+int64_t Operand::constantValue() noexcept(false) {
+    throw NoConstantValue(recordName());
+}
+
 bool PermanentOperand::isPermanent() {
     return true;
 }
 
-ConstantOperand::ConstantOperand(const int value): PermanentOperand(), value(value) {}
+ConstantOperand::ConstantOperand(const int64_t value): PermanentOperand(), value(value) {}
 
 ConstantOperand* ConstantOperand::copyImpl() const {
     return new ConstantOperand(this->value);
@@ -46,6 +60,14 @@ MemoryPosition ConstantOperand::memoryPosition(GlobalSymbolTable &table) {
     } else {
         throw NotInMemory(name);
     }
+}
+
+bool ConstantOperand::hasConstantValue() {
+    return true;
+}
+
+int64_t ConstantOperand::constantValue() noexcept(false) {
+    return value;
 }
 
 std::string ConstantOperand::recordName() {

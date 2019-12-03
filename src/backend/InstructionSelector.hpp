@@ -18,6 +18,8 @@
 using AssemblyBlock = std::vector<Assembly>;
 // label identifier -> code location
 using JumpTable = std::unordered_map<LabelIdentifier, uint64_t>;
+// memory postion -> constant
+using ConstantTable = std::unordered_map<MemoryPosition, int64_t>;
 
 namespace isaselector {
     struct ISAMatchFailed: public std::exception {
@@ -30,7 +32,7 @@ namespace isaselector {
      * Expands control flow blocks into basic three address code blocks.
      * @param program program to expand
      */
-    std::list<ThreeAddressCodeBlock> expand(BaseBlock& program, GlobalSymbolTable& symbolTable);
+    std::list<ThreeAddressCodeBlock> expand(BaseBlock& program, GlobalSymbolTable& symbolTable, ConstantTable& values);
 
     /**
      * Simplifies three address code block.
@@ -42,7 +44,7 @@ namespace isaselector {
      * Matches three address code to target isa instructions using abstract jump locations.
      * @param block block to match instructions to
      */
-    void match(AssemblyBlock& asmBlock, JumpTable& jtable, ThreeAddressCodeBlock& block, GlobalSymbolTable& table) noexcept(false);
+    void match(AssemblyBlock& asmBlock, JumpTable& jtable, ThreeAddressCodeBlock& block, GlobalSymbolTable& table, ConstantTable& constants) noexcept(false);
 
     /**
      * Adds memory map initialization block

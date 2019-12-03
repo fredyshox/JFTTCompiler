@@ -34,8 +34,9 @@ TEST(ISAMatch, Addition) {
     GlobalSymbolTable st;
     JumpTable jt;
     AssemblyBlock res;
+    ConstantTable con;
     try {
-        isaselector::match(res, jt, block, st);
+        isaselector::match(res, jt, block, st, con);
     } catch (isaselector::ISAMatchFailed& ex) {
         cout << "Exception Message: " << ex.what() << endl;
         FAIL();
@@ -57,8 +58,9 @@ TEST(ISAMatch, Subtraction) {
     GlobalSymbolTable st;
     JumpTable jt;
     AssemblyBlock res;
+    ConstantTable con;
     try {
-        isaselector::match(res, jt, block, st);
+        isaselector::match(res, jt, block, st, con);
     } catch (isaselector::ISAMatchFailed& ex) {
         cout << "Exception Message: " << ex.what() << endl;
         FAIL();
@@ -80,8 +82,9 @@ TEST(ISAMatch, IndirectMemory) {
     GlobalSymbolTable st;
     JumpTable jt;
     AssemblyBlock res;
+    ConstantTable con;
     try {
-        isaselector::match(res, jt, block, st);
+        isaselector::match(res, jt, block, st, con);
     } catch (isaselector::ISAMatchFailed& ex) {
         cout << "Exception Message: " << ex.what() << endl;
         FAIL();
@@ -109,9 +112,10 @@ TEST(ISAMatch, JumpTableFix) {
     GlobalSymbolTable st;
     JumpTable jt;
     AssemblyBlock res;
+    ConstantTable con;
     try {
-        isaselector::match(res, jt, block1, st);
-        isaselector::match(res, jt, block2, st);
+        isaselector::match(res, jt, block1, st, con);
+        isaselector::match(res, jt, block2, st, con);
     } catch (isaselector::ISAMatchFailed& ex) {
         cout << "Exception Message: " << ex.what() << endl;
         FAIL();
@@ -135,9 +139,10 @@ TEST(ISAMatch, SymbolTableConstants1) {
     ThreeAddressCodeBlock block = ThreeAddressCodeBlock::addition(a, c10u, c71s);
 
     GlobalSymbolTable st;
+    ConstantTable con;
     st.insert("a", Record::integer("a"));
 
-    auto res = isaselector::expand(block, st);
+    auto res = isaselector::expand(block, st, con);
     EXPECT_EQ(st.allRecords().size(), 3); // a, 10, -71
     EXPECT_TRUE(st.contains(c10u.recordName()));
     EXPECT_TRUE(st.contains(c71s.recordName()));
@@ -151,10 +156,11 @@ TEST(ISAMatch, SymbolTableConstants2) {
     ThreeAddressCodeBlock block = ThreeAddressCodeBlock::addition(b, a, c71s);
 
     GlobalSymbolTable st;
+    ConstantTable con;
     st.insert("a", Record::integer("a"));
     st.insert("b", Record::array("b", {5, 15}));
 
-    auto res = isaselector::expand(block, st);
+    auto res = isaselector::expand(block, st, con);
     EXPECT_EQ(st.allRecords().size(), 5); // a, b, __mb, 10, -72
     EXPECT_TRUE(st.contains(c10u.recordName()));
     EXPECT_TRUE(st.contains(c71s.recordName()));
@@ -168,10 +174,11 @@ TEST(ISAMatch, MemoryMapOffsets) {
     ThreeAddressCodeBlock block = ThreeAddressCodeBlock::addition(b, a, c71s);
 
     GlobalSymbolTable st;
+    ConstantTable con;
     st.insert("a", Record::integer("a"));
     st.insert("b", Record::array("b", {5, 15}));
 
-    auto res = isaselector::expand(block, st);
+    auto res = isaselector::expand(block, st, con);
     auto allRecords = st.allRecords();
     unordered_set<MemoryPosition> offsets;
     for (auto it : allRecords) {

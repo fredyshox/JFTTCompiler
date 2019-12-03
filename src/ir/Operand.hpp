@@ -19,6 +19,12 @@ struct NotInMemory: public std::exception {
     const char* what() const throw() override;
 };
 
+struct NoConstantValue: public std::exception {
+    const std::string message;
+    explicit NoConstantValue(std::string opName);
+    const char* what() const throw() override;
+};
+
 class Operand {
 private:
     Operand() = default;
@@ -28,6 +34,8 @@ public:
     virtual bool isPermanent() = 0;
     virtual bool hasStaticMemoryPosition();
     virtual MemoryPosition memoryPosition(GlobalSymbolTable& table) noexcept(false);
+    virtual bool hasConstantValue();
+    virtual int64_t constantValue() noexcept(false);
     virtual std::string recordName() = 0;
 
     friend class PermanentOperand;
@@ -43,12 +51,14 @@ public:
 
 class ConstantOperand: public PermanentOperand {
 public:
-    const int value;
+    const int64_t value;
 
-    ConstantOperand(int value);
+    ConstantOperand(int64_t value);
     ConstantOperand() = delete;
     bool hasStaticMemoryPosition() override;
     MemoryPosition memoryPosition(GlobalSymbolTable& table) noexcept(false) override;
+    bool hasConstantValue() override;
+    int64_t constantValue() noexcept(false) override;
     std::string recordName() override;
 protected:
     ConstantOperand* copyImpl() const override;

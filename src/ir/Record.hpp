@@ -31,6 +31,8 @@ struct Record {
     bool isIterator = false;
     bool isConstant = false;
     bool isMemoryLocation = false;
+    // only for constant
+    int64_t value;
 
     Record(std::string name, Type type, int size, std::optional<ArrayBounds> bounds, MemoryPosition offset = OFFSET_UNINITIALIZED) {
         this->name = name;

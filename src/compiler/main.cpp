@@ -52,7 +52,8 @@ int main(int argc, const char** argv) {
         std::cerr << "Compilation status: hybrid ir conversion complete" << std::endl;
 
         GlobalSymbolTable& globalSymbolTableRef = *globalSymbolTable;
-        std::list<ThreeAddressCodeBlock> llir = isaselector::expand(*startBlock, globalSymbolTableRef);
+        ConstantTable constantTable;
+        std::list<ThreeAddressCodeBlock> llir = isaselector::expand(*startBlock, globalSymbolTableRef, constantTable);
 
         std::cerr << "Memory map: " << std::endl;
         for (auto& it : globalSymbolTableRef.allRecords()) {
@@ -82,7 +83,7 @@ int main(int argc, const char** argv) {
         JumpTable jumpTable;
         isaselector::initializationBlock(asmBlock, globalSymbolTableRef);
         for (auto& tacBlock : llir) {
-            isaselector::match(asmBlock, jumpTable, tacBlock, globalSymbolTableRef);
+            isaselector::match(asmBlock, jumpTable, tacBlock, globalSymbolTableRef, constantTable);
         }
         isaselector::terminationBlock(asmBlock, jumpTable);
         isaselector::applyJumpTable(asmBlock, jumpTable);

@@ -18,15 +18,21 @@ using Operator = ThreeAddressCode::Operator;
 #define MM_TEMP4 4
 #define MM_TEMP5 5
 
-std::list<ThreeAddressCodeBlock> isaselector::expand(BaseBlock &program, GlobalSymbolTable& symbolTable) {
+std::list<ThreeAddressCodeBlock> isaselector::expand(BaseBlock &program,
+                                                     GlobalSymbolTable& symbolTable,
+                                                     ConstantTable& values) {
     // flatten the program into tac blocks
     std::list<ThreeAddressCodeBlock> flatTacs = BaseBlock::flattenBlockList(&program);
 
     // helpful lambda for constants
-    auto insertConstant = [&symbolTable](std::string rname) mutable {
+    auto insertConstant = [&symbolTable](Operand& operand) mutable {
+        std::string rname = operand.recordName();
         if (!symbolTable.contains(rname)) {
             Record record = Record::integer(rname);
             record.isConstant = true;
+            if (operand.hasConstantValue()) {
+                record.value = operand.constantValue();
+            }
             symbolTable.insert(rname, record);
         }
     };
@@ -43,18 +49,10 @@ std::list<ThreeAddressCodeBlock> isaselector::expand(BaseBlock &program, GlobalS
             for (int i = 0; i < nArgs && i < 3; i++) {
                 if (!ccc[i]->isPermanent()) continue;
 
-                std::string rname = ccc[i]->recordName();
-                insertConstant(rname);
-                if (!symbolTable.contains(rname)) {
-                    std::cout << "FUCCK" << std::endl;
-                }
+                insertConstant(*ccc[i]);
 
                 if (auto aso = dynamic_cast<ArraySymbolOperand*>(ccc[i])) {
-                    rname = aso->index->recordName();
-                    insertConstant(rname);
-                    if (!symbolTable.contains(rname)) {
-                        std::cout << "FUCCK" << std::endl;
-                    }
+                    insertConstant(*aso->index);
                 }
             }
         }
@@ -74,6 +72,10 @@ std::list<ThreeAddressCodeBlock> isaselector::expand(BaseBlock &program, GlobalS
             Record m = Record::memoryLocation(record.name);
             m.offset = currentPos++;
             symbolTable.insert(m.name, m);
+        }
+
+        if (record.isConstant) {
+            values[record.offset] = record.value;
         }
     }
 
@@ -223,12 +225,49 @@ const char* isaselector::ISAMatchFailed::what() const throw() {
 
 #define ISAMatchIncorrectFormat ISAMatchFailed("Incorrect format (not simplified)")
 
-#define else_throw_exception(exception) \
+#define ELSE_THROW_EXCEPTION(exception) \
     else { \
         throw exception; \
     }
 
-void isaselector::match(AssemblyBlock& asmBlock, JumpTable& jtable, ThreeAddressCodeBlock &block, GlobalSymbolTable& table) noexcept(false) {
+void optimalAddition(AssemblyBlock& asmBlock, MemoryPosition& mop1, MemoryPosition& mop2, ConstantTable& constants) {
+    if (mop1 == 0 || mop2 == 0) {
+        auto nonZero = mop1 == 0 ? mop2 : mop1;
+        auto value = constants.find(nonZero);
+        if (value != constants.end() && value->second == 1) {
+            asmBlock.push_back(Assembly::Inc());
+        } else if (value != constants.end() && value->second == -1) {
+            asmBlock.push_back(Assembly::Dec());
+        } else {
+            asmBlock.push_back(Assembly::Add(nonZero));
+        }
+    } else {
+        asmBlock.push_back(Assembly::Load(mop1));
+        asmBlock.push_back(Assembly::Add(mop2));
+    }
+}
+
+void optimalSubtraction(AssemblyBlock& asmBlock, MemoryPosition& mop1, MemoryPosition& mop2, ConstantTable& constants) {
+    if (mop1 == 0) {
+        auto value = constants.find(mop2);
+        if (value != constants.end() && value->second == 1) {
+            asmBlock.push_back(Assembly::Dec());
+        } else if (value != constants.end() && value->second == -1) {
+            asmBlock.push_back(Assembly::Inc());
+        } else {
+            asmBlock.push_back(Assembly::Sub(mop2));
+        }
+    } else {
+        asmBlock.push_back(Assembly::Load(mop1));
+        asmBlock.push_back(Assembly::Sub(mop2));
+    }
+}
+
+void isaselector::match(AssemblyBlock& asmBlock,
+                        JumpTable& jtable,
+                        ThreeAddressCodeBlock &block,
+                        GlobalSymbolTable& table,
+                        ConstantTable& constants) noexcept(false) {
     MemoryPosition mdest;
     MemoryPosition mop1;
     MemoryPosition mop2;
@@ -263,7 +302,7 @@ void isaselector::match(AssemblyBlock& asmBlock, JumpTable& jtable, ThreeAddress
                     asmBlock.push_back(Assembly::Load(mop1));
                 } else if (mop1 == 0) {
                     asmBlock.push_back(Assembly::Store(mdest));
-                } else_throw_exception(ISAMatchIncorrectFormat);
+                } ELSE_THROW_EXCEPTION(ISAMatchIncorrectFormat);
                 break;
             case Operator::LOAD_IND:
                 // loadi if dest v0
@@ -272,7 +311,7 @@ void isaselector::match(AssemblyBlock& asmBlock, JumpTable& jtable, ThreeAddress
                     asmBlock.push_back(Assembly::LoadI(mop1));
                 } else if (mop1 == 0) {
                     asmBlock.push_back(Assembly::StoreI(mdest));
-                } else_throw_exception(ISAMatchIncorrectFormat);
+                } ELSE_THROW_EXCEPTION(ISAMatchIncorrectFormat);
                 break;
             case Operator::STDIN:
                 asmBlock.push_back(Assembly::Get());
@@ -284,29 +323,15 @@ void isaselector::match(AssemblyBlock& asmBlock, JumpTable& jtable, ThreeAddress
                 // load vop1
                 // add vop2
                 if (mdest == 0) {
-                    if (mop1 == 0) {
-                        asmBlock.push_back(Assembly::Add(mop2));
-                    } else if (mop2 == 0) {
-                        asmBlock.push_back(Assembly::Add(mop1));
-                    } else {
-                        asmBlock.push_back(Assembly::Load(mop1));
-                        asmBlock.push_back(Assembly::Add(mop2));
-                    }
-                } else_throw_exception(ISAMatchIncorrectFormat);
+                    optimalAddition(asmBlock, mop1, mop2, constants);
+                } ELSE_THROW_EXCEPTION(ISAMatchIncorrectFormat);
                 break;
             case Operator::SUB:
                 // load vop1
                 // sub vop2
                 if (mdest == 0) {
-                    if (mop1 == 0) {
-                        asmBlock.push_back(Assembly::Sub(mop2));
-                    } else if (mop2 == 0) {
-                        asmBlock.push_back(Assembly::Sub(mop1));
-                    } else {
-                        asmBlock.push_back(Assembly::Load(mop1));
-                        asmBlock.push_back(Assembly::Sub(mop2));
-                    }
-                } else_throw_exception(ISAMatchIncorrectFormat);
+                    optimalSubtraction(asmBlock, mop1, mop2, constants);
+                } ELSE_THROW_EXCEPTION(ISAMatchIncorrectFormat);
                 break;
             case Operator::LSHIFT:
                 if (mdest == 0) {
@@ -318,7 +343,7 @@ void isaselector::match(AssemblyBlock& asmBlock, JumpTable& jtable, ThreeAddress
                         asmBlock.push_back(Assembly::Load(mop1));
                         asmBlock.push_back(Assembly::Shift(mop2));
                     }
-                } else_throw_exception(ISAMatchIncorrectFormat);
+                } ELSE_THROW_EXCEPTION(ISAMatchIncorrectFormat);
                 break;
             case Operator::JUMP:
                 // jump l
