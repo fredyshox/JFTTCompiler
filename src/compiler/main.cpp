@@ -5,6 +5,7 @@
 #include <iostream>
 #include <exception>
 #include <list>
+#include <unistd.h>
 
 // frontend
 extern "C" {
@@ -22,14 +23,38 @@ extern "C" {
 #include "AssemblyPrinter.hpp"
 #include "InstructionSelector.hpp"
 
+
+/**
+ * Compiler options:
+ * m - output memory map to stderr
+ * i - output ir to stderr
+ * s - output simplified ir to stderr
+ */
 int main(int argc, const char** argv) {
-    if (argc < 3) {
+    bool memoryMapOpt = false, irOpt = false, simpleIrOpt = false;
+    int opt;
+    while ((opt = getopt(argc, (char**) argv, ":mis")) != -1) {
+        switch (opt) {
+            case 'm': 
+                memoryMapOpt = true;
+                break;
+            case 'i':
+                irOpt = true;
+                break;
+            case 's':
+                simpleIrOpt = true;
+                break;
+            default: break;
+        }
+    }
+
+    if (optind + 1 >= argc) {
         std::cout << "Usage: " << argv[0] << " <infile> <outfile>" << std::endl;
         return 1;
     }
 
-    const char* inputFile = argv[1];
-    const char* outputFile = argv[2];
+    const char* inputFile = argv[optind];
+    const char* outputFile = argv[++optind];
     ASTProgram* astProgram = parser_parseFile(inputFile);
     if (astProgram == nullptr) {
         std::cout << "Compilation error: unable to obtain ast representation" << std::endl;
@@ -55,32 +80,35 @@ int main(int argc, const char** argv) {
         ConstantTable constantTable;
         std::list<ThreeAddressCodeBlock> llir = isaselector::expand(*startBlock, globalSymbolTableRef, constantTable);
 
-        std::cout << "Constant map: ";
-        for (auto& x: constantTable) {
-            std::cout << x.first << " : " << x.second << ", ";
-        }
-        std::cout << std::endl;
-
-        std::cerr << "Memory map: " << std::endl;
-        for (auto& it : globalSymbolTableRef.allRecords()) {
-            std::cerr << it.second.name << " : " << it.second.offset << ", ";
-        }
-        std::cerr << std::endl << std::endl;
-
-        std::cerr << "Full: " << std::endl;
-        for (auto& tacBlock : llir) {
-            std::cerr << "l" << tacBlock.id() << ":" << std::endl;
-            for (auto& tac: tacBlock.codes()) {
-                std::cerr << tac.toString() << std::endl;
+        if (memoryMapOpt) {
+            std::cerr << "Memory map: " << std::endl;
+            for (auto& it : globalSymbolTableRef.allRecords()) {
+                std::cerr << it.second.name << " : " << it.second.offset << ", ";
             }
+            std::cerr << std::endl << std::endl;
+        }
+
+        if (irOpt) {
+            std::cerr << "Full IR: " << std::endl;
+            for (auto& tacBlock : llir) {
+                std::cerr << "l" << tacBlock.id() << ":" << std::endl;
+                for (auto& tac: tacBlock.codes()) {
+                    std::cerr << tac.toString() << std::endl;
+                }
+            }
+        }
+
+        for (auto& tacBlock : llir) {
             isaselector::simplify(tacBlock, globalSymbolTableRef);
         }
-        std::cerr << std::endl;
-        std::cerr << "Simplified: " << std::endl;
-        for (auto& tacBlock : llir) {
-            std::cerr << "l" << tacBlock.id() << ":" << std::endl;
-            for (auto& tac: tacBlock.codes()) {
-                std::cerr << tac.toString() << std::endl;
+        
+        if (simpleIrOpt) {
+            std::cerr << "Simplified IR: " << std::endl;
+            for (auto& tacBlock : llir) {
+                std::cerr << "l" << tacBlock.id() << ":" << std::endl;
+                for (auto& tac: tacBlock.codes()) {
+                    std::cerr << tac.toString() << std::endl;
+                }
             }
         }
         std::cerr << "Compilation status: hybrid ir simplification complete" << std::endl;
