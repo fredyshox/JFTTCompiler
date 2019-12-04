@@ -104,9 +104,9 @@ void isaselector::simplify(ThreeAddressCodeBlock &block, GlobalSymbolTable& tabl
                     // unroll array operations
                     auto* aso = dynamic_cast<ArraySymbolOperand*>(code.firstOperand.get());
                     std::string memoryPosRecordName = "__m" + code.firstOperand->recordName();
-                    Record memoryPosRecord = table.search(memoryPosRecordName);
+                    Record memoryPosRecord = table.searchAllRecords(memoryPosRecordName);
                     std::string indexRecordName = aso->index->recordName();
-                    Record indexRecord = table.search(indexRecordName);
+                    Record indexRecord = table.searchAllRecords(indexRecordName);
 
                     auto v0 = VirtualRegisterOperand(MM_ACC);
                     auto vmb = VirtualRegisterOperand(memoryPosRecord.memoryPosition());

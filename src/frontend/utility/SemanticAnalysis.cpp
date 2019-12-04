@@ -33,8 +33,9 @@ void semanticanalysis::analyze(ASTDeclarationList *decList) {
     }
 }
 
-void semanticanalysis::validate(ASTSymbol symbol, Record record) {
+void semanticanalysis::validate(ASTSymbol symbol, SymbolTable* symbolTable) {
     std::string symbolId = symbol.identifier;
+    Record record = symbolTable->search(symbolId);
     if (record.name.compare(symbolId) != 0) {
         throw SymbolException("Identifier do not match with symbol table - " + std::string(symbolId));
     }
@@ -47,12 +48,19 @@ void semanticanalysis::validate(ASTSymbol symbol, Record record) {
         throw SymbolException(symbolId + " is not ARRAY, and should not be indexed");
     }
 
-    if (symbol.type == kASTIdentifierArray && symbol.index.indexType == kASTIndexValue) {
-        int constantIndex = symbol.index.value;
-        if (constantIndex < ArrayBoundsGetLower(record.bounds.value()) || constantIndex > ArrayBoundsGetUpper(record.bounds.value())) {
-            std::stringstream ss;
-            ss << symbolId << "(" << constantIndex << ")" << " index out of bounds";
-            throw SymbolException(ss.str());
+    if (symbol.type == kASTIdentifierArray) {
+        if (symbol.index.indexType == kASTIndexValue) {
+            int constantIndex = symbol.index.value;
+            if (constantIndex < ArrayBoundsGetLower(record.bounds.value()) || constantIndex > ArrayBoundsGetUpper(record.bounds.value())) {
+                std::stringstream ss;
+                ss << symbolId << "(" << constantIndex << ")" << " index out of bounds";
+                throw SymbolException(ss.str());
+            }
+        } else {
+            Record indexRecord = symbolTable->search(symbol.index.identifier);
+            if (indexRecord.type != Record::Type::INT) {
+                throw SymbolException(indexRecord.name + " cannot be used as array index");
+            }
         }
     }
 }
@@ -60,27 +68,24 @@ void semanticanalysis::validate(ASTSymbol symbol, Record record) {
 void semanticanalysis::analyze(ASTAssignment *assignment, SymbolTable *symbolTable) {
     // lvalue validation
     Record lval = symbolTable->search(assignment->symbol.identifier);
-    validate(assignment->symbol, lval);
+    validate(assignment->symbol, symbolTable);
     if (lval.isIterator) {
         throw SymbolException("Loop iterator " + lval.name + " is immutable");
     }
     // rvalue validation
     if (assignment->rtype == kRTypeOperand && assignment->operand.type == kOperandSymbol) {
         ASTSymbol symbol = assignment->symbol;
-        Record rval = symbolTable->search(symbol.identifier);
-        validate(symbol, rval);
+        validate(symbol, symbolTable);
     } else if (assignment->rtype == kRTypeExpression) {
         ASTExpression expr = assignment->expression;
         if (expr.operand1.type == kOperandSymbol) {
             ASTSymbol symbol1 = expr.operand1.symbol;
-            Record rval1 = symbolTable->search(symbol1.identifier);
-            validate(symbol1, rval1);
+            validate(symbol1, symbolTable);
         }
 
         if (expr.operand2.type == kOperandSymbol) {
             ASTSymbol symbol2 = expr.operand2.symbol;
-            Record rval2 = symbolTable->search(symbol2.identifier);
-            validate(symbol2, rval2);
+            validate(symbol2, symbolTable);
         }
     }
 }
@@ -88,14 +93,12 @@ void semanticanalysis::analyze(ASTAssignment *assignment, SymbolTable *symbolTab
 void semanticanalysis::analyze(ASTCondition condition, SymbolTable *symbolTable) {
     if (condition.operand1.type == kOperandSymbol) {
         ASTSymbol symbol = condition.operand1.symbol;
-        Record record = symbolTable->search(symbol.identifier);
-        validate(symbol, record);
+        validate(symbol, symbolTable);
     }
 
     if (condition.operand2.type == kOperandSymbol) {
         ASTSymbol symbol = condition.operand2.symbol;
-        Record record = symbolTable->search(symbol.identifier);
-        validate(symbol, record);
+        validate(symbol, symbolTable);
     }
 }
 
@@ -108,8 +111,7 @@ void semanticanalysis::analyze(ASTIO *io, SymbolTable *symbolTable) {
 
     if (io->operand.type == kOperandSymbol) {
         ASTSymbol symbol = io->operand.symbol;
-        Record record = symbolTable->search(symbol.identifier);
-        validate(symbol, record);
+        validate(symbol, symbolTable);
     }
 }
 
@@ -128,14 +130,12 @@ void semanticanalysis::analyze(ASTForLoop *forLoop, SymbolTable* symbolTable) {
 
     if (forLoop->iteratorInitial.type == kOperandSymbol) {
         ASTSymbol symbol = forLoop->iteratorInitial.symbol;
-        Record record = symbolTable->search(symbol.identifier);
-        validate(symbol, record);
+        validate(symbol, symbolTable);
     }
 
     if (forLoop->iteratorBound.type == kOperandSymbol) {
         ASTSymbol symbol = forLoop->iteratorBound.symbol;
-        Record record = symbolTable->search(symbol.identifier);
-        validate(symbol, record);
+        validate(symbol, symbolTable);
     }
 }
 

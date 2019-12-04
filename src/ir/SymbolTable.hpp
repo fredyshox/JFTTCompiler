@@ -28,7 +28,7 @@ public:
 };
 
 struct RecordNotFound: public std::exception {
-    const std::string key;
+    const std::string message;
     explicit RecordNotFound(std::string key);
     const char* what() const throw() override;
 };

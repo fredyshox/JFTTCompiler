@@ -6,12 +6,10 @@
 #include "SymbolTable.hpp"
 #include <iostream>
 
-RecordNotFound::RecordNotFound(const std::string key): key(key) {}
+RecordNotFound::RecordNotFound(const std::string key): message("RecordNotFound: Record not found for the key: " + key) {}
 
 const char* RecordNotFound::what() const throw() {
-    std::stringstream ss;
-    ss << "Record not found for key: " << key;
-    return ss.str().c_str();
+    return message.c_str();
 }
 
 std::unordered_map<std::string, Record>& GlobalSymbolTable::allRecords() {

@@ -17,7 +17,7 @@ ASTProgram* parser_parseFile(const char* path) {
   ASTProgram** ptr = malloc(sizeof(ASTProgram*));
   *ptr = NULL;
   if (yyparse(ptr, fp) != 0) {
-    fprintf(stderr, "Parser error: cannot parse ASTree\n.");
+    fprintf(stderr, "Parser error: cannot parse ASTree\n");
   }
 
   fclose(fp);
@@ -29,7 +29,7 @@ ASTProgram* parser_parseString(const char* str) {
   ASTProgram** ptr = malloc(sizeof(ASTProgram*));
   *ptr = NULL;
   if (yyparse(ptr, NULL) != 0) {
-      fprintf(stderr, "Parser error: cannot parse ASTree.\n");
+      fprintf(stderr, "Parser error: cannot parse ASTree\n");
   }
 
   lexer_deleteScanBuffer(state);

@@ -50,9 +50,9 @@ void analyze(ASTDeclarationList* decList);
 /**
  * Checks if symbol match with declaration
  * @param symbol
- * @param record
+ * @param table
  */
-void validate(ASTSymbol symbol, Record record);
+void validate(ASTSymbol symbol, SymbolTable* symbolTable);
 
 /**
  * Performs following checks on assignments:
