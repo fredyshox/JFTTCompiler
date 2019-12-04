@@ -13,7 +13,5 @@ add_subdirectory(src/backend)
 add_subdirectory(src/ir)
 add_subdirectory(src/compiler)
 
-message(STATUS "SDfsdfdsfsdF")
-
 enable_testing()
 add_subdirectory(test)

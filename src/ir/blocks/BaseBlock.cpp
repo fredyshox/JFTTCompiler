@@ -41,9 +41,9 @@ void BaseBlock::setEndLabel(LabelIdentifier endLabel) {
     onEndLabelChange(endLabel);
 }
 
-void BaseBlock::onIdChange(LabelIdentifier newId) {}
+void BaseBlock::onIdChange(LabelIdentifier) {}
 
-void BaseBlock::onEndLabelChange(LabelIdentifier newLabel) {}
+void BaseBlock::onEndLabelChange(LabelIdentifier) {}
 
 std::list<ThreeAddressCodeBlock> BaseBlock::flattenBlockList(BaseBlock *block) {
     BaseBlock* current = block;

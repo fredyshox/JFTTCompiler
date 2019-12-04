@@ -41,4 +41,4 @@ ThreeAddressCodeBlock DoWhileLoopBlock::init() {
     });
 }
 
-void DoWhileLoopBlock::onIdChange(LabelIdentifier newId) {}
+void DoWhileLoopBlock::onIdChange(LabelIdentifier) {}
