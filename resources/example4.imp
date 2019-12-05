@@ -1,0 +1,11 @@
+DECLARE
+       a; b;
+   IN
+       READ b;
+       DO
+           b := b - 1;
+           WRITE b;
+       WHILE b > 0 ENDDO
+       WRITE b;
+
+   END

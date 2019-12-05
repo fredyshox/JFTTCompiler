@@ -1,0 +1,14 @@
+DECLARE
+    a; b;
+IN
+    READ b;
+    IF b > 10 THEN
+        b := b + 72;
+        b := b - 90;
+    ELSE
+        FOR i FROM 2 TO 10 DO
+            b := b + i;
+        ENDFOR
+    ENDIF
+    WRITE b;
+END

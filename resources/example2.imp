@@ -1,0 +1,11 @@
+DECLARE
+    a; b;
+IN
+    READ b;
+    READ a;
+    FOR i FROM 1 TO b DO
+        a := a + a;
+        WRITE a;
+    ENDFOR
+    WRITE a;
+END

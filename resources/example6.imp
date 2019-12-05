@@ -1,0 +1,11 @@
+DECLARE
+    a(10: 100); b;
+IN
+    FOR i FROM 10 TO 100 DO
+        a(i) := i + 2;
+        WRITE i;
+    ENDFOR
+
+    WRITE a(72);
+    WRITE a(100);
+END

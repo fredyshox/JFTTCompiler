@@ -1,0 +1,5 @@
+DECLARE a; b; IN
+    READ a;
+    a := a - -1;
+    WRITE a;
+END
