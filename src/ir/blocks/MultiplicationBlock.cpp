@@ -28,8 +28,9 @@ MultiplicationBlock::MultiplicationBlock(Operand &dest,
     MultiplicationBlock(dest.copy(), firstOperand.copy(), secondOperand.copy(), parentTable) {}
 
 ThreeAddressCodeBlock MultiplicationBlock::init() {
-    auto v1 = VirtualRegisterOperand(1);
+    auto v7 = VirtualRegisterOperand(7);
     auto v8 = VirtualRegisterOperand(8);
+    auto v9 = VirtualRegisterOperand(9);
     auto c0 = ConstantOperand(0);
     auto multiplier = SymbolOperand(multiplierRecordName());
     auto multiplicand = SymbolOperand(multiplicandRecordName());
@@ -38,25 +39,29 @@ ThreeAddressCodeBlock MultiplicationBlock::init() {
     Operand& op1 = *_firstOperand;
     Operand& op2 = *_secondOperand;
 
+    auto prepareMultiplicandBlock = ThreeAddressCodeBlock::copy(multiplicand, op2, 1);
+    auto prepareMultiplierBlock = ThreeAddressCodeBlock::copy(multiplier, op1, 3);
+    auto zeroResBlock = ThreeAddressCodeBlock::copy(dest, c0, 5);
     auto checkZeroBlock = ThreeAddressCodeBlock({
-        ThreeAddressCode(v1.copy(), ThreeAddressCode::LOAD, op2.copy()),
+        ThreeAddressCode(v7.copy(), ThreeAddressCode::LOAD, multiplicand.copy()),
+        ThreeAddressCodeBlock::jump(endLabel(), JUMP_ZERO),
+        ThreeAddressCode(v8.copy(), ThreeAddressCode::LOAD, multiplier.copy()),
         ThreeAddressCodeBlock::jump(endLabel(), JUMP_ZERO)
     });
-    auto preparemultiplicandBlock = ThreeAddressCodeBlock::copy(multiplicand, op2, 2);
-    auto prepareMultiplierBlock = ThreeAddressCodeBlock::copy(multiplier, op1, 4);
-    auto zeroResBlock = ThreeAddressCodeBlock::copy(dest, c0, 6);
     auto negativeCheckBlock = ThreeAddressCodeBlock({
-        ThreeAddressCode(v8.copy(), ThreeAddressCode::LOAD, multiplier.copy()),
+        ThreeAddressCode(v9.copy(), ThreeAddressCode::LOAD, multiplier.copy()),
         ThreeAddressCodeBlock::jump(negativeInitLabel(), JUMP_NEGATIVE),
         ThreeAddressCodeBlock::jump(bodyLabel(), JUMP_ALWAYS)
     });
 
-    checkZeroBlock.merge(preparemultiplicandBlock);
-    checkZeroBlock.merge(prepareMultiplierBlock);
-    checkZeroBlock.merge(zeroResBlock);
-    checkZeroBlock.merge(negativeCheckBlock);
+    ThreeAddressCodeBlock block;
+    block.merge(prepareMultiplicandBlock);
+    block.merge(prepareMultiplierBlock);
+    block.merge(zeroResBlock);
+    block.merge(checkZeroBlock);
+    block.merge(negativeCheckBlock);
 
-    return checkZeroBlock;
+    return block;
 }
 
 ThreeAddressCodeBlock MultiplicationBlock::negativeInit() {

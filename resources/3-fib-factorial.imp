@@ -1,3 +1,4 @@
+[ index out of range? ]
 DECLARE
     f(0:100); s(0:100); i(0:100); n; k; l;
 IN
@@ -6,11 +7,11 @@ IN
   s(0):=1;
   i(0):=0;
   FOR j FROM 1 TO n DO
-      k:=j-1;
-      l:=k-1;
-      i(j):=i(k)+1;
-      f(j):=f(k)+f(l);
-      s(j):=s(k)*i(j);
+      k := j - 1;
+      l := k - 1;
+      i(j) := i(k) + 1;
+      f(j) := f(k) + f(l);
+      s(j) := s(k) * i(j);
       WRITE j;
   ENDFOR
   WRITE s(n);

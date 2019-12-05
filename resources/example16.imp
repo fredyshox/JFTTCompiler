@@ -1,0 +1,18 @@
+[ 0 remainder ]
+DECLARE a; b; c; IN
+    a := 5;
+    b := 45;
+    b := a % 0;
+    WRITE b;
+    b := 45;
+    b := 0 % a;
+    WRITE b;
+    b := 45;
+    c := 0;
+    b := a % c;
+    WRITE b;
+    b := 45;
+    a := 0;
+    b := a % c;
+    WRITE b;
+END
