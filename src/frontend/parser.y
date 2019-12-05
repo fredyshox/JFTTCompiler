@@ -138,7 +138,7 @@ declaration: ID SEMICOLON {
     ASTDeclaration declaration = ASTDeclarationCreateSimple($1);
     $$ = ASTDeclarationListCreate(declaration);
   }
-  | ID OPEN NUMBER COLON NUMBER CLOSE SEMICOLON {
+  | ID OPEN number COLON number CLOSE SEMICOLON {
     ASTDeclaration declaration = ASTDeclarationCreateArray($1, $3, $5);
     $$ = ASTDeclarationListCreate(declaration);
   }
@@ -238,7 +238,7 @@ identifier: ID { $$ = ASTSymbolCreateSimple($1); }
     ASTIndex index = ASTIndexCreateIdentifier($3);
     $$ = ASTSymbolCreateArray($1, index);
   }
-  | ID OPEN NUMBER CLOSE {
+  | ID OPEN number CLOSE {
     ASTIndex index = ASTIndexCreateValue($3);
     $$ = ASTSymbolCreateArray($1, index);
   }
