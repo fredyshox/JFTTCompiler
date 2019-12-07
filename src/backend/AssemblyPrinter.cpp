@@ -14,7 +14,6 @@ void asmprinter::printToFile(const std::string &filename, AssemblyBlock& asmBloc
 
 void asmprinter::printToFile(std::ofstream &file, AssemblyBlock& asmBlock) {
     for (const Assembly& assembly : asmBlock) {
-        std::string str = assembly.toString();
-        file << str << std::endl;
+        file << assembly << std::endl;
     }
 }

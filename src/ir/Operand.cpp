@@ -23,7 +23,7 @@ std::unique_ptr<Operand> Operand::copy() const {
     return std::unique_ptr<Operand>(copyImpl());
 }
 
-bool Operand::hasStaticMemoryPosition() {
+bool Operand::hasStaticMemoryPosition() const {
     return false;
 }
 
@@ -31,7 +31,7 @@ MemoryPosition Operand::memoryPosition(GlobalSymbolTable&) {
     throw NotInMemory("no name");
 }
 
-bool Operand::hasConstantValue() {
+bool Operand::hasConstantValue() const {
     return false;
 }
 
@@ -39,7 +39,12 @@ int64_t Operand::constantValue() noexcept(false) {
     throw NoConstantValue(recordName());
 }
 
-bool PermanentOperand::isPermanent() {
+std::ostream& operator<<(std::ostream& stream, const Operand& operand) {
+    stream << operand.recordName();
+    return stream;
+}
+
+bool PermanentOperand::isPermanent() const {
     return true;
 }
 
@@ -49,7 +54,7 @@ ConstantOperand* ConstantOperand::copyImpl() const {
     return new ConstantOperand(this->value);
 }
 
-bool ConstantOperand::hasStaticMemoryPosition() {
+bool ConstantOperand::hasStaticMemoryPosition() const {
     return true;
 }
 
@@ -62,7 +67,7 @@ MemoryPosition ConstantOperand::memoryPosition(GlobalSymbolTable &table) {
     }
 }
 
-bool ConstantOperand::hasConstantValue() {
+bool ConstantOperand::hasConstantValue() const {
     return true;
 }
 
@@ -70,7 +75,7 @@ int64_t ConstantOperand::constantValue() noexcept(false) {
     return value;
 }
 
-std::string ConstantOperand::recordName() {
+std::string ConstantOperand::recordName() const {
     return Record::constantName(value);
 }
 
@@ -80,7 +85,7 @@ SymbolOperand* SymbolOperand::copyImpl() const {
     return new SymbolOperand(std::string(this->symbol));
 }
 
-bool SymbolOperand::hasStaticMemoryPosition() {
+bool SymbolOperand::hasStaticMemoryPosition() const {
     return true;
 }
 
@@ -92,7 +97,7 @@ MemoryPosition SymbolOperand::memoryPosition(GlobalSymbolTable &table) {
     }
 }
 
-std::string SymbolOperand::recordName() {
+std::string SymbolOperand::recordName() const {
     return symbol;
 }
 
@@ -102,7 +107,7 @@ ArraySymbolOperand* ArraySymbolOperand::copyImpl() const {
     return new ArraySymbolOperand(index->copy(), this->symbol);
 }
 
-bool ArraySymbolOperand::hasStaticMemoryPosition() {
+bool ArraySymbolOperand::hasStaticMemoryPosition() const {
     return dynamic_cast<ConstantOperand*>(this->index.get()) != nullptr;
 }
 
@@ -128,17 +133,17 @@ VirtualRegisterOperand* VirtualRegisterOperand::copyImpl() const {
     return new VirtualRegisterOperand(this->index);
 }
 
-bool VirtualRegisterOperand::isPermanent() {
+bool VirtualRegisterOperand::isPermanent() const {
     return false;
 }
 
-bool VirtualRegisterOperand::hasStaticMemoryPosition() {
+bool VirtualRegisterOperand::hasStaticMemoryPosition() const {
     return true;
 }
 
 MemoryPosition VirtualRegisterOperand::memoryPosition(GlobalSymbolTable&) {
     return index;
 }
-std::string VirtualRegisterOperand::recordName() {
+std::string VirtualRegisterOperand::recordName() const {
     return "__v" + std::to_string(index);
 }

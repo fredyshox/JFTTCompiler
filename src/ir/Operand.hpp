@@ -9,6 +9,7 @@
 // symbol - string
 // virtual register
 
+#include <ostream>
 #include <string>
 #include <exception>
 #include "SymbolTable.hpp"
@@ -31,12 +32,12 @@ private:
 public:
     virtual ~Operand() = default;
     std::unique_ptr<Operand> copy() const;
-    virtual bool isPermanent() = 0;
-    virtual bool hasStaticMemoryPosition();
+    virtual bool isPermanent() const = 0;
+    virtual bool hasStaticMemoryPosition() const;
     virtual MemoryPosition memoryPosition(GlobalSymbolTable& table) noexcept(false);
-    virtual bool hasConstantValue();
+    virtual bool hasConstantValue() const;
     virtual int64_t constantValue() noexcept(false);
-    virtual std::string recordName() = 0;
+    virtual std::string recordName() const = 0;
 
     friend class PermanentOperand;
     friend class VirtualRegisterOperand;
@@ -44,9 +45,11 @@ protected:
     virtual Operand* copyImpl() const = 0;
 };
 
+std::ostream& operator<<(std::ostream& stream, const Operand& a);
+
 class PermanentOperand: public Operand {
 public:
-    bool isPermanent() override;
+    bool isPermanent() const override;
 };
 
 class ConstantOperand: public PermanentOperand {
@@ -55,11 +58,11 @@ public:
 
     ConstantOperand(int64_t value);
     ConstantOperand() = delete;
-    bool hasStaticMemoryPosition() override;
+    bool hasStaticMemoryPosition() const override;
     MemoryPosition memoryPosition(GlobalSymbolTable& table) noexcept(false) override;
-    bool hasConstantValue() override;
+    bool hasConstantValue() const override;
     int64_t constantValue() noexcept(false) override;
-    std::string recordName() override;
+    std::string recordName() const override;
 protected:
     ConstantOperand* copyImpl() const override;
 };
@@ -70,9 +73,9 @@ public:
 
     SymbolOperand(std::string symbol);
     SymbolOperand() = delete;
-    bool hasStaticMemoryPosition() override;
+    bool hasStaticMemoryPosition() const override;
     MemoryPosition memoryPosition(GlobalSymbolTable& table) noexcept(false) override;
-    std::string recordName() override;
+    std::string recordName() const override;
 protected:
     SymbolOperand* copyImpl() const override;
 };
@@ -83,7 +86,7 @@ public:
 
     ArraySymbolOperand(std::unique_ptr<Operand> indexPtr, std::string symbol);
     ArraySymbolOperand() = delete;
-    bool hasStaticMemoryPosition() override;
+    bool hasStaticMemoryPosition() const override;
     MemoryPosition memoryPosition(GlobalSymbolTable& table) noexcept(false) override;
 protected:
     ArraySymbolOperand* copyImpl() const override;
@@ -95,10 +98,10 @@ public:
 
     VirtualRegisterOperand(uint64_t index);
     VirtualRegisterOperand() = delete;
-    bool isPermanent() override;
-    bool hasStaticMemoryPosition() override;
+    bool isPermanent() const override;
+    bool hasStaticMemoryPosition() const override;
     MemoryPosition memoryPosition(GlobalSymbolTable& table) noexcept(false) override;
-    std::string recordName() override;
+    std::string recordName() const override;
 protected:
     VirtualRegisterOperand* copyImpl() const override;
 };

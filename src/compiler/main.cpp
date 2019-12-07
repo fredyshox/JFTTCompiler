@@ -93,9 +93,10 @@ int main(int argc, const char** argv) {
             for (auto& tacBlock : llir) {
                 std::cerr << "l" << tacBlock.id() << ":" << std::endl;
                 for (auto& tac: tacBlock.codes()) {
-                    std::cerr << tac.toString() << std::endl;
+                    std::cerr << tac << std::endl;
                 }
             }
+            std::cerr << std::endl;
         }
 
         for (auto& tacBlock : llir) {
@@ -107,9 +108,10 @@ int main(int argc, const char** argv) {
             for (auto& tacBlock : llir) {
                 std::cerr << "l" << tacBlock.id() << ":" << std::endl;
                 for (auto& tac: tacBlock.codes()) {
-                    std::cerr << tac.toString() << std::endl;
+                    std::cerr << tac << std::endl;
                 }
             }
+            std::cerr << std::endl;
         }
         std::cerr << "Compilation status: hybrid ir simplification complete" << std::endl;
 

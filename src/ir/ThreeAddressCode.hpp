@@ -7,6 +7,7 @@
 #define ir_threeaddresscode_hpp
 
 #include <optional>
+#include <ostream>
 #include <type_traits>
 #include "Operand.hpp"
 
@@ -72,27 +73,26 @@ struct GenericThreeAddressCode {
     }
     GenericThreeAddressCode() = delete;
     ~GenericThreeAddressCode() = default;
-
-    // MARK: Utility
-    std::string toString() {
-        std::stringstream ss;
-        if (destination) {
-            ss << destination->recordName() << " ";
-        }
-        ss << OperatorToString[static_cast<int>(op)] << " ";
-        if (firstOperand) {
-            ss << firstOperand->recordName() << " ";
-        }
-        if (secondOperand) {
-            ss << secondOperand->recordName() << " ";
-        }
-        if (label.has_value()) {
-            ss << "l" << label.value() << " ";
-        }
-
-        return ss.str();
-    }
 };
+
+template<typename T>
+std::ostream& operator<<(std::ostream& stream, const GenericThreeAddressCode<T>& gtac) {
+    if (gtac.destination) {
+        stream << *gtac.destination << " ";
+    }
+    stream << GenericThreeAddressCode<T>::OperatorToString[static_cast<int>(gtac.op)] << " ";
+    if (gtac.firstOperand) {
+        stream << *gtac.firstOperand << " ";
+    }
+    if (gtac.secondOperand) {
+        stream << *gtac.secondOperand << " ";
+    }
+    if (gtac.label.has_value()) {
+        stream << "l" << gtac.label.value() << " ";
+    }
+
+    return stream;
+}
 
 using ThreeAddressCode = GenericThreeAddressCode<Operand>;
 using VRThreeAddressCode = GenericThreeAddressCode<VirtualRegisterOperand>;

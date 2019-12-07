@@ -16,16 +16,6 @@ void Assembly::setArgument(std::optional<uint64_t> argument) {
     _argument = argument;
 }
 
-std::string Assembly::toString() const {
-    std::stringstream ss;
-    ss << _mnemonic << " ";
-    if (_argument.has_value()) {
-        ss << _argument.value();
-    }
-
-    return ss.str();
-}
-
 Assembly Assembly::Put() {
     return Assembly("PUT");
 }
@@ -88,4 +78,13 @@ Assembly Assembly::JNeg(uint64_t pos) {
 
 Assembly Assembly::Halt() {
     return Assembly("HALT");
+}
+
+std::ostream& operator<<(std::ostream& stream, const Assembly& a) {
+    stream << a.mnemonic() << " ";
+    if (a.argument().has_value()) {
+        stream << a.argument().value();
+    }
+
+    return stream;
 }

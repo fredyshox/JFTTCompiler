@@ -17,7 +17,7 @@ using namespace std;
 std::string printToString(AssemblyBlock& block) {
     std::stringstream ss;
     for (Assembly& a : block) {
-        ss << a.toString() << "\n";
+        ss << a << "\n";
     }
 
     return ss.str();

@@ -5,6 +5,7 @@
 #ifndef backend_assembly_hpp
 #define backend_assembly_hpp
 
+#include <iostream>
 #include <string>
 #include <sstream>
 #include <optional>
@@ -23,7 +24,6 @@ public:
     std::string mnemonic() const;
     std::optional<uint64_t> argument() const;
     void setArgument(std::optional<uint64_t> argument);
-    std::string toString() const;
     static Assembly Put();
     static Assembly Get();
     static Assembly Load(uint64_t offset);
@@ -41,5 +41,7 @@ public:
     static Assembly JNeg(uint64_t pos);
     static Assembly Halt();
 };
+
+std::ostream& operator<<(std::ostream& stream, const Assembly& a);
 
 #endif /* backend_assembly_hpp */
