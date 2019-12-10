@@ -1,7 +1,13 @@
 cmake_minimum_required(VERSION 3.7)
 
-# bison # TODO remove custom path
-find_program(bison_EXECUTABLE /usr/local/Cellar/bison/3.2.2/bin/bison)
+# bison
+if (DEFINED BISON_PATH)
+  set(bison_NAME ${BISON_PATH})
+else()
+  set(bison_NAME bison)
+endif()
+
+find_program(bison_EXECUTABLE ${bison_NAME}) #/usr/local/Cellar/bison/3.2.2/bin/bison)
 if (bison_EXECUTABLE EQUAL bison_EXECUTABLE-NOTFOUND)
   message(FATAL_ERROR "bison is required (>= 3.2.2)")
 endif()
@@ -20,7 +26,13 @@ add_custom_command(
 )
 
 # flex
-find_program(flex_EXECUTABLE flex)
+if (DEFINED FLEX_PATH)
+  set(flex_NAME ${FLEX_PATH})
+else()
+  set(flex_NAME flex)
+endif()
+
+find_program(flex_EXECUTABLE ${flex_NAME})
 if (flex_EXECUTABLE EQUAL flex_EXECUTABLE-NOTFOUND)
   message(FATAL_ERROR "flex is required (>= 2.5)")
 endif()
