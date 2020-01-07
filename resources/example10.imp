@@ -1,3 +1,4 @@
+[ uint to bin ]
 DECLARE
     a; b;
 IN
